@@ -1,0 +1,11 @@
+todo:
+
+add more checks
+cooldowns/ratelimits (aaaaa)
+add error messages that users can see (getting better at that)
+add documentation (definitions of cmds in docstrings for help)
+
+
+notes/resources:
+
+
