@@ -2,7 +2,12 @@ todo:
 
 add more checks
 cooldowns/ratelimits (aaaaa)
-
+add all aliases to list of ignored msgs in self.list or wtv it is
+somewhere it says 60 seconds and the timeout is actually 30 i think
+finish making embeds for error handlers
+handle ran out of pinned messages
+handle messages too long
+add blacklist for who can
 
 notes/resources:
 
