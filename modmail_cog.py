@@ -25,8 +25,7 @@ class Modmail(commands.Cog):
         opening_modmail_embed = discord.Embed(description = 'Opening a new modmail...')
         opening_modmail_message = await modmail_user.send(embed = opening_modmail_embed)
 
-        c = await self.bot.conn.cursor()
-        await c.execute('SELECT * FROM activemodmails WHERE userid=?', (modmail_user.id,))
+        c = await self.bot.conn.execute('SELECT * FROM activemodmails WHERE userid=?', (modmail_user.id,))
         if await c.fetchone() is None:
 
             my_guild = self.bot.get_guild(server_id)
@@ -125,8 +124,7 @@ class Modmail(commands.Cog):
             if msg_guild is None and member_of_my_guild is not None: #if in DM and user in guild
 
                 
-                c = await self.bot.conn.cursor()
-                await c.execute('SELECT * FROM activemodmails WHERE userid=?', (msg_authorid, ))
+                c = await self.bot.conn.execute('SELECT * FROM activemodmails WHERE userid=?', (msg_authorid, ))
                 my_row = await c.fetchone()
                 await self.bot.conn.commit()
                 
@@ -167,8 +165,7 @@ class Modmail(commands.Cog):
 
             else: #if not in DM
                 
-                c = await self.bot.conn.cursor()
-                await c.execute('SELECT * FROM activemodmails WHERE modmailchnlid=?', (msg_channelid, ))
+                c = await self.bot.conn.execute('SELECT * FROM activemodmails WHERE modmailchnlid=?', (msg_channelid, ))
                 my_row = await c.fetchone()
                 await self.bot.conn.commit()
                 
@@ -257,17 +254,18 @@ class Modmail(commands.Cog):
         update_notice_str = f'{ctx.author.name}#{ctx.author.discriminator} set the modmail topic/reason to "{reason}"'
         update_notice_embed = discord.Embed(description = update_notice_str).set_author(name = self.embed_details['author name'],   icon_url = self.embed_details['author icon']).set_footer(text = self.embed_details['footer'])
         
-        c = await self.bot.conn.cursor()
+
 
         if ctx.guild is None:
-            await c.execute('SELECT * FROM activemodmails WHERE userid=?', (ctx.author.id,))
+            c = await self.bot.conn.execute('SELECT * FROM activemodmails WHERE userid=?', (ctx.author.id,))
         else:
-            await c.execute('SELECT * FROM activemodmails WHERE modmailchnlid=?', (ctx.channel.id,))
+            c = await self.bot.conn.execute('SELECT * FROM activemodmails WHERE modmailchnlid=?', (ctx.channel.id,))
 
         try:
             my_row = await c.fetchone()
             to_logs_reason_change = my_row[3] + f'{update_notice_str}\n\n'
-
+            
+            c = await self.bot.conn.cursor()
             await c.execute('UPDATE activemodmails SET reason=?, msglog=? WHERE modmailchnlid=? ', (reason, to_logs_reason_change, my_row   [1]))
             await self.bot.conn.commit()
 

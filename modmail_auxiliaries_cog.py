@@ -28,8 +28,7 @@ class Modmail_auxiliaries(commands.Cog):
     async def showdb(self, ctx):
         "A command that shows the current state of the activemodmails table as a file upload to the channel it is used in. Only meant for use in development, to detect duplicate modmails and the like. Logs of modmail content are contained in this table, so the command may reveal sensitive information. Not designed or tested for widespread use. Only responds to LonelyPenguin."
 
-        c = await self.bot.conn.cursor()
-        await c.execute('SELECT * FROM activemodmails')
+        c = await self.bot.conn.execute('SELECT * FROM activemodmails')
         full_activemodmails_table = await c.fetchall()
         await self.bot.conn.commit()
         
@@ -45,7 +44,7 @@ class Modmail_auxiliaries(commands.Cog):
         dpy_compatible_showtable_file = discord.File(showtable_filename_with_path)
         await ctx.send(content=f'Current contents of activemodmails table:', file=dpy_compatible_showtable_file)
     
-    @commands.command(aliases = ['reload'])
+    @commands.command(aliases = ['reload', 'reloadcog'])
     async def reloadext(self, ctx, cog_to_reload):
         "A command which reloads an extension (a file called by the main bot process). Extensions contain cogs, which are different categories of functionality and commands. This command provides the ability to reload an extension after making changes to its code, without relaunching the whole bot. cog_to_reload must be the file name of the extension, without file path or .py file extension. Not designed or tested for widespread use. Only responds to LonelyPenguin."
         try:
