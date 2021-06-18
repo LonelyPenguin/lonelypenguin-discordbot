@@ -3,7 +3,7 @@ from discord.ext import commands
 import aiosqlite
 import asyncio
 import json
-
+import os
 
 class Modmail_auxiliaries(commands.Cog):
     "Developer commands providing common shortcuts to make the testing and development of the modmail setup easier. Currently, these commands will only respond to LonelyPenguin."
@@ -43,6 +43,9 @@ class Modmail_auxiliaries(commands.Cog):
 
         dpy_compatible_showtable_file = discord.File(showtable_filename_with_path)
         await ctx.send(content=f'Current contents of activemodmails table:', file=dpy_compatible_showtable_file)
+
+        os.remove(showtable_filename_with_path)
+
     
     @commands.command(aliases = ['reload', 'reloadcog'])
     async def reloadext(self, ctx, cog_to_reload):

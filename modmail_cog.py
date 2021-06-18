@@ -3,6 +3,7 @@ from discord.ext import commands
 import aiosqlite
 import asyncio
 from config.server_vars import logs_channel_id, server_id, modmail_category_id, moderator_role_ids
+import os
 
 
 class Modmail(commands.Cog):
@@ -236,16 +237,23 @@ class Modmail(commands.Cog):
 
             #send to the user:
             dpy_compatible_log = discord.File(log_name_with_path)
+            os.remove(log_name_with_path)
+            
             user_modmail_closed_embed = discord.Embed(description = f'Modmail closed by {ctx.author.name}. At time of closure, the modmail\'s reason was "{modmail_reason}".').set_author(name = self.embed_details['author name'], icon_url = self.embed_details['author icon']).set_footer(text = 'Send another message to open a new modmail.')
 
             await modmail_user.send(embed=user_modmail_closed_embed)
             await modmail_user.send(content = 'Logs:', file=dpy_compatible_log)
+
+
 
         except TypeError:
             await ctx.send(content = 'Error: You probably aren\'t in a modmail.', delete_after = 5.0)
             await ctx.message.delete(delay = 4.75)
         except discord.Forbidden:
             await ctx.send('Modmail closed, but couldn\'t DM the user to notify them.')
+
+
+
 
     @commands.command(aliases = ['reason', 'ticketreason', 'newreason'])
     async def modmailreason(self, ctx, *, reason: str):
