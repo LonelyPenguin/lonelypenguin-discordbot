@@ -152,4 +152,4 @@ node_modules
 .sass-cache
 
 # bot token
-config/private.py
+private.py
