@@ -7,23 +7,24 @@ import os
 
 
 class Modmail(commands.Cog):
-    "Fully-featured modmail setup. DM this bot to open a modmail and speak to moderators. Use ;modmailreason and ;closemodmail in an open modmail (channel or DM) to change the modmail reason or close it. Once closed, users and moderators will be sent a log of the conversation. Attachements function as expected. Moderators can use ;openmodmail <userid> [reason] to open a modmail with a specific user. A \'✅\' reaction on a message means it\'s been successfully relayed, and messages without this reaction have not been relayed. If system does not function as expected, please contact LonelyPenguin#9931."
+    "Fully-featured modmail setup. DM this bot to open a modmail and speak to moderators. Use ;modmailreason and ;closemodmail in an open modmail (channel or DM) to change the modmail reason or close it. Once closed, users and moderators will be sent a log of the conversation. Attachements function as expected. Moderators can use ;openmodmail <userid> [reason] to open a modmail with a specific user. A \'✅\' reaction on a message means it\'s been successfully relayed, and messages without this reaction have not been relayed. A ✂️ means the message has been cut to stay within the character limit. If system does not function as expected, please contact LonelyPenguin#9931. Will chop off the end of messages if they're too long."
     
     def __init__(self, bot: commands.Bot):
         
         self.bot = bot
         self.embed_details = {'author name': 'Servername Modmail', 'author icon': 'https://cdn.discordapp.com/attachments/743536411369799804/854865953083228181/mail_icon.png', 'footer': 'Use ;closemodmail to close this modmail, and ;modmailreason to change its reason.'}
-        self.dont_trigger_onmessage = [';closemodmail', ';modmailreason', ';openmodmail', ';reloadext', ';showdb', ';deletemanychannels']
+        self.dont_trigger_onmessage = [';closemodmail', ';modmailreason', ';openmodmail', ';reloadext', ';showdb', ';deletemanychannels', ';reason', ';ticketreason', ';newreason', ';closeticket', ';close', ';modmailclose', ';ticketclose', ';openticket', ';newmodmail', ';newticket', ';reload', ';reloadcog']
         print('\nReloaded cog\n----')
     
-    #def cog_check(self, ctx):
-        #return len(ctx.message.content) <= 1980
-#functions for less repeated code
 
     async def open_modmail_func(self, messagectx, modmailuserid, from_user: bool, modmailreason="no reason specified"):
         
         modmail_user = self.bot.get_user(modmailuserid)
         
+        if len(messagectx.content) >= 1910:
+            await messagectx.add_reaction('✂')
+        message_content = messagectx.content[:1909]
+
         opening_modmail_embed = discord.Embed(description = 'Opening a new modmail...')
         opening_modmail_message = await modmail_user.send(embed = opening_modmail_embed)
 
@@ -34,7 +35,7 @@ class Modmail(commands.Cog):
             modmail_private_cat = my_guild.get_channel(modmail_category_id)
             modmail_channel = await modmail_private_cat.create_text_channel(f'{modmail_user.name}{modmail_user.discriminator}')
 
-            first_log_entry = f"{messagectx.author.name}#{messagectx.author.discriminator} ({messagectx.author.id}) at {messagectx.created_at} UTC\n{messagectx.content}\nAttachment(s): {[attachment.url for attachment in messagectx.attachments]}\n\n"
+            first_log_entry = f"{messagectx.author.name}#{messagectx.author.discriminator} ({messagectx.author.id}) at {messagectx.created_at} UTC\n{message_content}\nAttachment(s): {[attachment.url for attachment in messagectx.attachments]}\n\n"
         
             new_row = (modmail_user.id, modmail_channel.id, modmailreason, first_log_entry)
 
@@ -44,16 +45,16 @@ class Modmail(commands.Cog):
             await self.bot.conn.commit()
         
             if from_user:
-                mod_modmail_opened_embed = discord.Embed(description = f'New modmail from {messagectx.author.mention} (see their message below). Send a message in this channel to respond.\n\nA \'✅\' on your message means it\'s been successfully relayed.').set_author(name = self.embed_details['author name'], icon_url = self.embed_details['author icon']).set_footer(text = self.embed_details['footer'])
+                mod_modmail_opened_embed = discord.Embed(description = f'New modmail from {messagectx.author.mention} (see their message below). Send a message in this channel to respond.\n\nA ✅ on your message means it\'s been successfully relayed, while a ✂️ means it has been cut to stay within the character limit.').set_author(name = self.embed_details['author name'], icon_url = self.embed_details['author icon']).set_footer(text = self.embed_details['footer'])
 
-                user_modmail_opened_embed = discord.Embed(description = f'Opened a new modmail and sent your message.\n\nAll messages sent will be relayed back and forth between you and the moderators. A \'✅\' on your message means it\'s been successfully relayed.').set_author(name = self.embed_details['author name'], icon_url = self.embed_details['author icon']).set_footer(text = self.embed_details['footer'])
+                user_modmail_opened_embed = discord.Embed(description = f'Opened a new modmail and sent your message.\n\nAll messages sent will be relayed back and forth between you and the moderators. A ✅ on your message means it\'s been successfully relayed, while a ✂️ means it has been cut to stay within the character limit.').set_author(name = self.embed_details['author name'], icon_url = self.embed_details['author icon']).set_footer(text = self.embed_details['footer'])
 
                 relay_first_message_to = modmail_channel
         
             else:
-                mod_modmail_opened_embed = discord.Embed(description = f'Modmail opened by moderator {messagectx.author.mention} to talk to user {modmail_user.mention}. The reason for this modmail is "{modmailreason}".\n\nA \'✅\' on your message means it\'s been successfully relayed.\n\n**{messagectx.author.name}\'s initial message**e:\n\n{messagectx.content}').set_author(name = self.embed_details['author name'], icon_url = self.embed_details['author icon']).set_footer(text = self.embed_details['footer'])
+                mod_modmail_opened_embed = discord.Embed(description = f'Modmail opened by moderator {messagectx.author.mention} to talk to user {modmail_user.mention}. The reason for this modmail is "{modmailreason}".\n\nA ✅ on your message means it\'s been successfully relayed.\n\n**{messagectx.author.name}\'s initial message**:\n\n{message_content[:1639]}').set_author(name = self.embed_details['author name'], icon_url = self.embed_details['author icon']).set_footer(text = self.embed_details['footer'])
         
-                user_modmail_opened_embed = discord.Embed(description = f'A moderator on KotLC Chats opened a new modmail to speak with you (see their message below). Send a message in this DM to respond. The reason for this modmail is "{modmailreason}." \n\nAll messages sent will be relayed back and forth between you and the moderators. A \'✅\' on your message means it\'s been successfully relayed.').set_author(name = self.embed_details['author name'], icon_url = self.embed_details['author icon']).set_footer(text = self.embed_details['footer'])
+                user_modmail_opened_embed = discord.Embed(description = f'A moderator on KotLC Chats opened a new modmail to speak with you (see their message below). Send a message in this DM to respond. The reason for this modmail is "{modmailreason}." \n\nAll messages sent will be relayed back and forth between you and the moderators. A ✅ on your message means it\'s been successfully relayed, while a ✂️ means it has been cut to stay within the character limit.').set_author(name = self.embed_details['author name'], icon_url = self.embed_details['author icon']).set_footer(text = self.embed_details['footer'])
 
                 relay_first_message_to = modmail_user
             
@@ -62,9 +63,9 @@ class Modmail(commands.Cog):
             
             if messagectx.attachments != []:
                 discordable_files = [(await x.to_file()) for x in messagectx.attachments]
-                await relay_first_message_to.send(f'**{messagectx.author.name}**: {messagectx.content}', files=discordable_files)
+                await relay_first_message_to.send(f'**{messagectx.author.name}**: {message_content}', files=discordable_files)
             else:
-                await relay_first_message_to.send(f'**{messagectx.author.name}**: {messagectx.content}')
+                await relay_first_message_to.send(f'**{messagectx.author.name}**: {message_content}')
 
             await initial_user_msg.pin()
             await initial_mod_msg.pin()
@@ -74,14 +75,18 @@ class Modmail(commands.Cog):
             
             if from_user:
                 await messagectx.author.send(embed = avoid_duplicate_modmail_embed)
-                await messagectx.author.send(messagectx.content)
+                await messagectx.author.send(message_content)
             else:
                 await opening_modmail_message.delete()
                 await messagectx.channel.send(embed = avoid_duplicate_modmail_embed)
-                await messagectx.channel.send(messagectx.content)
+                await messagectx.channel.send(message_content)
         
 
     async def relay_message(self, messagectx, row, from_user: bool):
+
+        if len(messagectx.content) >= 1960:
+            await messagectx.add_reaction('✂')
+        message_content = messagectx.content[:1959]
 
         if from_user:
             destination = self.bot.get_channel(row[1])
@@ -91,15 +96,15 @@ class Modmail(commands.Cog):
         try:
             if messagectx.attachments != []:
                 discordable_files = [(await x.to_file()) for x in messagectx.attachments]
-                await destination.send(f'**{messagectx.author.name}**: {messagectx.content}', files=discordable_files)
+                await destination.send(f'**{messagectx.author.name}**: {message_content}', files=discordable_files)
             else:
-                await destination.send(f'**{messagectx.author.name}**: {messagectx.content}')
+                await destination.send(f'**{messagectx.author.name}**: {message_content}')
 
             await messagectx.add_reaction('✅')
         except discord.Forbidden:
             await messagectx.channel.send('Couldn\'t send a message to this user; they have probably blocked the bot. Try DMing them directly. (Alternatively, you have blocked this bot and it can\'t add a reaction to your message.)')
 
-        log_entry = f"{messagectx.author.name}#{messagectx.author.discriminator} ({messagectx.author.id}) at {messagectx.created_at} UTC\n{messagectx.content}\nAttachment(s): {[attachment.url for attachment in messagectx.attachments]}\n\n"
+        log_entry = f"{messagectx.author.name}#{messagectx.author.discriminator} ({messagectx.author.id}) at {messagectx.created_at} UTC\n{message_content}\nAttachment(s): {[attachment.url for attachment in messagectx.attachments]}\n\n"
         updated_log = row[3] + log_entry
         to_update = (updated_log, row[1])
 
@@ -119,8 +124,10 @@ class Modmail(commands.Cog):
             msg_channelid = message.channel.id
             msg_guild = message.guild
             msg_authorid = message.author.id
-            msg_content = message.content
-
+            
+            if len(message.content) >= 1910:
+                await message.add_reaction('✂')
+            msg_content = message.content[:1909]
 
             my_guild = self.bot.get_guild(server_id)
             member_of_my_guild = my_guild.get_member(msg_authorid)
@@ -163,7 +170,7 @@ class Modmail(commands.Cog):
                             cancel_embed = discord.Embed(description = 'Cancelled.')
                             await msg_channel.send(embed = cancel_embed)
 
-                    except asyncio.TimeoutError: #if 60 seconds pass without user confirming or canceling
+                    except asyncio.TimeoutError: #if 30 seconds pass without user confirming or canceling
                         timed_out_embed = discord.Embed(description = 'Timed out, process cancelled. To try again, send a new message.')
                         await msg_channel.send(embed = timed_out_embed)
 
@@ -182,7 +189,7 @@ class Modmail(commands.Cog):
     @commands.command(aliases = ['openticket', 'newmodmail', 'newticket'])
     async def openmodmail(self, ctx, open_modmail_with_user: discord.Member, *, new_modmail_reason="no reason specified"):
         
-        "Command for moderators to open a new modmail with a designated user. Cannot be used by regular users. Syntax: ;openmodmail <user id or mention> [optional reason]. Will create a new modmail and inform the user that a moderator opened it. Reason defaults to 'no reason specified' and can be changed later using ;modmailreason. Upon use, bot will prompt for the initial message to relay to the designated user. Attempting to open two tickets at once with the same user will result in an error, but should be handled; if something goes wrong, contact LonelyPenguin#9931."
+        "Command for moderators to open a new modmail with a designated user. Cannot be used by regular users. Syntax: ;openmodmail <user id or mention> [optional reason]. Will create a new modmail and inform the user that a moderator opened it. Reason defaults to 'no reason specified' and can be changed later using ;modmailreason. Upon use, bot will prompt for the initial message to relay to the designated user. Attempting to open two tickets at once with the same user will result in an error, but should be handled; if something goes wrong, contact LonelyPenguin#9931. Maximum length of reason is 72 characters."
         
         if ctx.guild == self.bot.get_guild(server_id) and ctx.author.top_role.id in moderator_role_ids:
             
@@ -191,7 +198,8 @@ class Modmail(commands.Cog):
             def check_user(m):
                 return m.author == ctx.author and m.channel == ctx.channel
             msg = await self.bot.wait_for('message', timeout = 60.0, check=check_user)
-            await self.open_modmail_func(msg, int(open_modmail_with_user.id), False, modmailreason = new_modmail_reason)
+            
+            await self.open_modmail_func(msg, int(open_modmail_with_user.id), False, modmailreason = new_modmail_reason[:71])
 
     @openmodmail.error
     async def openmodmail_error(self, ctx, error):
@@ -202,11 +210,13 @@ class Modmail(commands.Cog):
             mod_timed_out_embed = discord.Embed(description = 'Timed out. Use the command ;openmodmail <userid> [reason] to try again.')
             await ctx.send(embed = mod_timed_out_embed)
         elif isinstance(error, commands.MissingRequiredArgument):
-            await ctx.send(content = 'Missing a required argument. Proper syntax: `;modmailreason [reason]`.', delete_after = 5.0)
+            await ctx.send(content = 'Missing a required argument. Proper syntax: `;modmailreason <reason>`.', delete_after = 5.0)
             await ctx.message.delete(delay = 4.75)
         elif isinstance(error.original, discord.HTTPException):
             if error.original.code == 50035:
-                await ctx.send('Error: Your message or reason was too long to send. If a modmail channel is open, please use it as-is. Otherwise, run this command again.')
+                await ctx.send('Error: Your message or reason was too long to send. If a modmail channel is open, please use it as-is. Otherwise, run this command again with a shorter message.')
+
+
 
     @commands.command(aliases = ['closeticket', 'close', 'modmailclose', 'ticketclose'])
     async def closemodmail(self, ctx):
@@ -233,7 +243,7 @@ class Modmail(commands.Cog):
         logs_channel = self.bot.get_channel(logs_channel_id)
         #send to moderators' logs:
         dpy_compatible_log = discord.File(log_name_with_path)
-        mod_modmail_closed_embed = discord.Embed(description = f'Modmail with {modmail_user.mention} closed by {ctx.author. name}. Modmail reason was "{modmail_reason}".').set_author(name = self.embed_details['author name'], icon_url = self.embed_details['author icon']).set_footer(text = 'Use ;openmodmail <userid> [reason] to open another modmail.')
+        mod_modmail_closed_embed = discord.Embed(description = f'Modmail with {modmail_user.mention} closed by {ctx.author.name}. Modmail reason was "{modmail_reason}".').set_author(name = self.embed_details['author name'], icon_url = self.embed_details['author icon']).set_footer(text = 'Use ;openmodmail <userid> [reason] to open another modmail.')
 
         await logs_channel.send(embed = mod_modmail_closed_embed)
         await logs_channel.send(content = 'Logs:', file=dpy_compatible_log)
@@ -266,6 +276,7 @@ class Modmail(commands.Cog):
     async def modmailreason(self, ctx, *, reason: str):
         "Set a new reason for an open modmail. Can be used in either an open modmail channel or a DM with an active modmail attached. Overwrites previous reasons, but reason changes are logged. A modmail's latest reason is given upon closure. Moderators can optionally set a reason for a modmail when opening one with ;openmodmail. Syntax: ;modmailreason <new reason>."
 
+        reason = reason[:71]
         update_notice_str = f'{ctx.author.name}#{ctx.author.discriminator} set the modmail topic/reason to "{reason}"'
         update_notice_embed = discord.Embed(description = update_notice_str).set_author(name = self.embed_details['author name'], icon_url = self.embed_details['author icon']).set_footer(text = self.embed_details['footer'])
 

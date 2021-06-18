@@ -2,12 +2,14 @@ todo:
 
 add more checks
 cooldowns/ratelimits (aaaaa)
-add all aliases to list of ignored msgs in self.list or wtv it is
-somewhere it says 60 seconds and the timeout is actually 30 i think
 finish making embeds for error handlers
 handle ran out of pinned messages
-handle messages too long
-add blacklist for who can
+add blacklist for who can do stuff
+    - make new db table
+    - make self.blacklisted list in init which calls the blacklisted table
+    - add command to add to blacklist
+    - command should add to db and update the list
+    - other commands and stuff just check the list rather than the db
 
 notes/resources:
 
