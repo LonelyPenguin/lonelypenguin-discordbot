@@ -5,8 +5,6 @@ cooldowns/ratelimits (aaaaa)
 finish making embeds for error handlers
 handle ran out of pinned messages
 add blacklist for who can do stuff
-    - make new db table
-    - make self.blacklisted list in init which calls the blacklisted table
     - add command to add to blacklist
     - command should add to db and update the list
     - other commands and stuff just check the list rather than the db

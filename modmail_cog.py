@@ -12,10 +12,13 @@ class Modmail(commands.Cog):
     def __init__(self, bot: commands.Bot):
         
         self.bot = bot
+        self.blacklisted_users = self.bot.blacklisted_users
         self.embed_details = {'author name': 'Servername Modmail', 'author icon': 'https://cdn.discordapp.com/attachments/743536411369799804/854865953083228181/mail_icon.png', 'footer': 'Use ;closemodmail to close this modmail, and ;modmailreason to change its reason.'}
         self.dont_trigger_onmessage = [';closemodmail', ';modmailreason', ';openmodmail', ';reloadext', ';showdb', ';deletemanychannels', ';reason', ';ticketreason', ';newreason', ';closeticket', ';close', ';modmailclose', ';ticketclose', ';openticket', ';newmodmail', ';newticket', ';reload', ';reloadcog']
         print('\nReloaded cog\n----')
     
+    def cog_check(self, ctx):
+        return ctx.message.author.id not in [each_row[1] for each_row in self.blacklisted_users]
 
     async def open_modmail_func(self, messagectx, modmailuserid, from_user: bool, modmailreason="no reason specified"):
         
@@ -45,16 +48,16 @@ class Modmail(commands.Cog):
             await self.bot.conn.commit()
         
             if from_user:
-                mod_modmail_opened_embed = discord.Embed(description = f'New modmail from {messagectx.author.mention} (see their message below). Send a message in this channel to respond.\n\nA ✅ on your message means it\'s been successfully relayed, while a ✂️ means it has been cut to stay within the character limit.').set_author(name = self.embed_details['author name'], icon_url = self.embed_details['author icon']).set_footer(text = self.embed_details['footer'])
+                mod_modmail_opened_embed = discord.Embed(description = f'New modmail from {messagectx.author.mention} (see their message below). Send a message in this channel to respond.\n\nA ✅ on your message means it\'s been successfully relayed, and a ✂️ means it has been cut to stay within the character limit.').set_author(name = self.embed_details['author name'], icon_url = self.embed_details['author icon']).set_footer(text = self.embed_details['footer'])
 
-                user_modmail_opened_embed = discord.Embed(description = f'Opened a new modmail and sent your message.\n\nAll messages sent will be relayed back and forth between you and the moderators. A ✅ on your message means it\'s been successfully relayed, while a ✂️ means it has been cut to stay within the character limit.').set_author(name = self.embed_details['author name'], icon_url = self.embed_details['author icon']).set_footer(text = self.embed_details['footer'])
+                user_modmail_opened_embed = discord.Embed(description = f'Opened a new modmail and sent your message.\n\nAll messages sent will be relayed back and forth between you and the moderators. A ✅ on your message means it\'s been successfully relayed, and a ✂️ means it has been cut to stay within the character limit.').set_author(name = self.embed_details['author name'], icon_url = self.embed_details['author icon']).set_footer(text = self.embed_details['footer'])
 
                 relay_first_message_to = modmail_channel
         
             else:
                 mod_modmail_opened_embed = discord.Embed(description = f'Modmail opened by moderator {messagectx.author.mention} to talk to user {modmail_user.mention}. The reason for this modmail is "{modmailreason}".\n\nA ✅ on your message means it\'s been successfully relayed.\n\n**{messagectx.author.name}\'s initial message**:\n\n{message_content[:1639]}').set_author(name = self.embed_details['author name'], icon_url = self.embed_details['author icon']).set_footer(text = self.embed_details['footer'])
         
-                user_modmail_opened_embed = discord.Embed(description = f'A moderator on KotLC Chats opened a new modmail to speak with you (see their message below). Send a message in this DM to respond. The reason for this modmail is "{modmailreason}." \n\nAll messages sent will be relayed back and forth between you and the moderators. A ✅ on your message means it\'s been successfully relayed, while a ✂️ means it has been cut to stay within the character limit.').set_author(name = self.embed_details['author name'], icon_url = self.embed_details['author icon']).set_footer(text = self.embed_details['footer'])
+                user_modmail_opened_embed = discord.Embed(description = f'A moderator on KotLC Chats opened a new modmail to speak with you (see their message below). Send a message in this DM to respond. The reason for this modmail is "{modmailreason}." \n\nAll messages sent will be relayed back and forth between you and the moderators. A ✅ on your message means it\'s been successfully relayed, and a ✂️ means it has been cut to stay within the character limit.').set_author(name = self.embed_details['author name'], icon_url = self.embed_details['author icon']).set_footer(text = self.embed_details['footer'])
 
                 relay_first_message_to = modmail_user
             
@@ -118,7 +121,7 @@ class Modmail(commands.Cog):
     @commands.Cog.listener()
     async def on_message(self, message):
 
-        if message.author.id != self.bot.user.id and all([not message.content.startswith(x) for x in self.dont_trigger_onmessage]): #if message not sent by the bot and doesn't start with a command
+        if message.author.id != self.bot.user.id and all([not message.content.startswith(x) for x in self.dont_trigger_onmessage]) and message.author.id not in [each_row[1] for each_row in self.blacklisted_users]: #if message not sent by the bot and doesn't start with a command and user not blacklisted 
 
             msg_channel = message.channel
             msg_channelid = message.channel.id
@@ -310,8 +313,64 @@ class Modmail(commands.Cog):
         elif isinstance(error.original, discord.HTTPException):
             if error.original.code==50035:
                 await ctx.send('Error: Reason is too long– please use this command again with a shorter reason.')
+    
 
+    @commands.group()
+    async def blacklist(self, ctx):
+        if not ctx.invoked_subcommand:
+            await ctx.send('Run `;help blacklist` for details, or `;blacklist show` to view the current blacklist.')
 
+    @blacklist.command(name='add')
+    async def blacklist_add(self, ctx, user_to_blacklist: discord.Member):
+        
+        c = await self.bot.conn.cursor()
+        await c.execute('INSERT INTO blacklist VALUES (?,?,?)', (ctx.message.created_at, user_to_blacklist.id, user_to_blacklist.name))
+        await self.bot.conn.commit()
+        
+        c = await self.bot.conn.execute('SELECT * FROM blacklist')
+        self.blacklisted_users = await c.fetchall()
+
+        mod_confirmed_blacklist_embed = discord.Embed(description = f'Blacklisted {user_to_blacklist.mention} from interacting with the modmail system.').set_author(name = self.embed_details['author name'], icon_url = self.embed_details['author icon'])
+        user_inform_blacklist_embed = discord.Embed(description = 'You have been blacklisted from the modmail system– this bot will no longer respond to any of your messages. If you believe this was in error, please DM a moderator directly.').set_author(name = self.embed_details['author name'], icon_url = self.embed_details['author icon'])
+        
+        await ctx.send(embed = mod_confirmed_blacklist_embed)
+        await user_to_blacklist.send(embed = user_inform_blacklist_embed)
+    
+    @blacklist.command(name = 'show')
+    async def blacklist_show(self, ctx):
+        
+        c = await self.bot.conn.execute('SELECT * FROM blacklist')
+        full_blacklist_table = await c.fetchall()
+        await self.bot.conn.commit()
+        
+        showtable_filename = f'{ctx.message.created_at}-currently-blacklisted-users.txt'
+
+        with open(showtable_filename, 'w') as showtable_txt_file:
+            showtable_txt_file.write('timestamp (UTC), userid, username\n\n')
+            for myrow in full_blacklist_table:
+                showtable_txt_file.write(f'{myrow}\n')
+            showtable_filename_with_path = showtable_txt_file.name
+
+        dpy_compatible_showtable_file = discord.File(showtable_filename_with_path)
+        await ctx.send(content=f'Users who are currently blacklisted (username accurate at time of initial blacklist):', file=dpy_compatible_showtable_file)
+
+        os.remove(showtable_filename_with_path)
+
+    @blacklist.command(name = 'remove')
+    async def blacklist_remove(self, ctx, user_to_unblacklist: discord.Member):
+        
+        c = await self.bot.conn.cursor()
+        await c.execute('DELETE FROM blacklist WHERE userid=?', (user_to_unblacklist.id,))
+        await self.bot.conn.commit()
+        
+        c = await self.bot.conn.execute('SELECT * FROM blacklist')
+        self.blacklisted_users = await c.fetchall()
+
+        mod_confirmed_unblacklist_embed = discord.Embed(description = f'Removed {user_to_unblacklist.mention} from the blacklist. They can once again interact with the modmail system.').set_author(name = self.embed_details['author name'], icon_url = self.embed_details['author icon'])
+        user_inform_unblacklist_embed = discord.Embed(description = 'You have been removed from the modmail blacklist– you can once again use the modmail system.').set_author(name = self.embed_details['author name'], icon_url = self.embed_details['author icon'])
+        
+        await ctx.send(embed = mod_confirmed_unblacklist_embed)
+        await user_to_unblacklist.send(embed = user_inform_unblacklist_embed)
 
 def setup(bot: commands.Bot):
     bot.add_cog(Modmail(bot))
