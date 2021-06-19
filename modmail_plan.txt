@@ -4,11 +4,7 @@ add more checks
 cooldowns/ratelimits (aaaaa)
 finish making embeds for error handlers
 handle ran out of pinned messages
-add blacklist for who can do stuff
-    - add command to add to blacklist
-    - command should add to db and update the list
-    - other commands and stuff just check the list rather than the db
+add can't close modmail for five minutes
+    - make the user-facing message pretty
 
 notes/resources:
-
-

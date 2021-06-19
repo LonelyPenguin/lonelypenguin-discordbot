@@ -4,6 +4,7 @@ import aiosqlite
 import asyncio
 from config.server_vars import logs_channel_id, server_id, modmail_category_id, moderator_role_ids
 import os
+import datetime
 
 
 class Modmail(commands.Cog):
@@ -40,11 +41,12 @@ class Modmail(commands.Cog):
 
             first_log_entry = f"{messagectx.author.name}#{messagectx.author.discriminator} ({messagectx.author.id}) at {messagectx.created_at} UTC\n{message_content}\nAttachment(s): {[attachment.url for attachment in messagectx.attachments]}\n\n"
         
-            new_row = (modmail_user.id, modmail_channel.id, modmailreason, first_log_entry)
+            modmail_opened_at = messagectx.created_at
+            new_row = (modmail_opened_at, modmail_user.id, modmail_channel.id, modmailreason, first_log_entry)
 
         
             c = await self.bot.conn.cursor()
-            await c.execute('INSERT INTO activemodmails VALUES (?,?,?,?)', new_row)
+            await c.execute('INSERT INTO activemodmails VALUES (?,?,?,?,?)', new_row)
             await self.bot.conn.commit()
         
             if from_user:
@@ -92,9 +94,9 @@ class Modmail(commands.Cog):
         message_content = messagectx.content[:1959]
 
         if from_user:
-            destination = self.bot.get_channel(row[1])
+            destination = self.bot.get_channel(row[2])
         else: #if in modmail channel
-            destination = self.bot.get_user(row[0])
+            destination = self.bot.get_user(row[1])
 
         try:
             if messagectx.attachments != []:
@@ -108,10 +110,10 @@ class Modmail(commands.Cog):
             await messagectx.channel.send('Couldn\'t send a message to this user; they have probably blocked the bot. Try DMing them directly. (Alternatively, you have blocked this bot and it can\'t add a reaction to your message.)')
 
         log_entry = f"{messagectx.author.name}#{messagectx.author.discriminator} ({messagectx.author.id}) at {messagectx.created_at} UTC\n{message_content}\nAttachment(s): {[attachment.url for attachment in messagectx.attachments]}\n\n"
-        updated_log = row[3] + log_entry
-        to_update = (updated_log, row[1])
-
+        updated_log = row[4] + log_entry
         
+        to_update = (updated_log, row[2])
+
         c = await self.bot.conn.cursor()
         await c.execute('UPDATE activemodmails SET msglog=? WHERE modmailchnlid=?', to_update)
         await self.bot.conn.commit()
@@ -128,25 +130,25 @@ class Modmail(commands.Cog):
             msg_guild = message.guild
             msg_authorid = message.author.id
             
-            if len(message.content) >= 1910:
-                await message.add_reaction('✂')
-            msg_content = message.content[:1909]
-
             my_guild = self.bot.get_guild(server_id)
             member_of_my_guild = my_guild.get_member(msg_authorid)
             
-            if msg_guild is None and member_of_my_guild is not None: #if in DM and user in guild
+            if msg_guild is None and member_of_my_guild is not None: #if in DM and user in the guild
 
                 
-                c = await self.bot.conn.execute('SELECT * FROM activemodmails WHERE userid=?', (msg_authorid, ))
+                c = await self.bot.conn.execute('SELECT * FROM activemodmails WHERE userid=?', (msg_authorid,))
                 my_row = await c.fetchone()
                 await self.bot.conn.commit()
                 
 
                 if my_row is not None: #if message in DM and part of an active modmail, relay message
                     await self.relay_message(message, my_row, True)
-
+                    
                 else: #if message in DM and not part of an active modmail, create modmail
+
+                    if len(message.content) >= 1910:
+                        await message.add_reaction('✂')
+                    msg_content = message.content[:1909]
 
                     initiate_modmail_embed = discord.Embed(description = f'Initiating a new modmail. React with 👍 to send this message to KotLC Chats moderators. To cancel, react with 🚫.\n\n**Your message**:\n\n {msg_content}').set_author(name = self.embed_details['author name'], icon_url = self.embed_details['author icon'])
                     bot_msg = await msg_channel.send(embed = initiate_modmail_embed)
@@ -224,6 +226,7 @@ class Modmail(commands.Cog):
     @commands.command(aliases = ['closeticket', 'close', 'modmailclose', 'ticketclose'])
     async def closemodmail(self, ctx):
         "Closes an open modmail. Must be used in the channel/DM attached to the modmail. Can be used by moderators or the modmail user. Upon use, will delete the modmail channel and send a log of its contents to both the modmail logs channel and the user from the modmail. No arguments needed."
+        
         c = await self.bot.conn.cursor()
 
         if ctx.guild is None:
@@ -233,34 +236,43 @@ class Modmail(commands.Cog):
 
         my_row = await c.fetchone()
         
+        timestamp_created = datetime.datetime.strptime(my_row[0], "%Y-%m-%d %H:%M:%S.%f")
+        allowed_to_close_at = timestamp_created + datetime.timedelta(minutes = 5)
+        rightnowutc = datetime.datetime.utcnow()
 
-        modmail_channel = self.bot.get_channel(my_row[1])
-        modmail_user = self.bot.get_user(my_row[0])
-        modmail_reason = my_row[2]
-    
-        log_filename = f'log-{modmail_user.name}-{modmail_reason}.txt'
-        with open(log_filename, 'w') as logs_txt_file:
-            logs_txt_file.write(my_row[3])
-            log_name_with_path = logs_txt_file.name
-    
-        logs_channel = self.bot.get_channel(logs_channel_id)
-        #send to moderators' logs:
-        dpy_compatible_log = discord.File(log_name_with_path)
-        mod_modmail_closed_embed = discord.Embed(description = f'Modmail with {modmail_user.mention} closed by {ctx.author.name}. Modmail reason was "{modmail_reason}".').set_author(name = self.embed_details['author name'], icon_url = self.embed_details['author icon']).set_footer(text = 'Use ;openmodmail <userid> [reason] to open another modmail.')
+        if allowed_to_close_at < rightnowutc:
 
-        await logs_channel.send(embed = mod_modmail_closed_embed)
-        await logs_channel.send(content = 'Logs:', file=dpy_compatible_log)
-        await modmail_channel.delete()
-        await c.execute('DELETE FROM activemodmails WHERE modmailchnlid=?', (my_row[1], ))
-        await self.bot.conn.commit()
-        #send to the user:
-        dpy_compatible_log = discord.File(log_name_with_path)
-        os.remove(log_name_with_path)
+            modmail_channel = self.bot.get_channel(my_row[2])
+            modmail_user = self.bot.get_user(my_row[1])
+            modmail_reason = my_row[3]
+
+            log_filename = f'log-{modmail_user.name}-{modmail_reason}.txt'
+            with open(log_filename, 'w') as logs_txt_file:
+                logs_txt_file.write(my_row[4])
+                log_name_with_path = logs_txt_file.name
+
+            logs_channel = self.bot.get_channel(logs_channel_id)
+            #send to moderators' logs:
+            dpy_compatible_log = discord.File(log_name_with_path)
+            mod_modmail_closed_embed = discord.Embed(description = f'Modmail with {modmail_user.mention} closed by {ctx.author.name}. Modmail reason was "{modmail_reason}".').set_author(name = self.embed_details['author name'], icon_url = self.embed_details['author icon']).set_footer(text = 'Use ;openmodmail <userid> [reason] to open another modmail.')
+
+            await logs_channel.send(embed = mod_modmail_closed_embed)
+            await logs_channel.send(content = 'Logs:', file=dpy_compatible_log)
+            await modmail_channel.delete()
+            await c.execute('DELETE FROM activemodmails WHERE modmailchnlid=?', (my_row[2], ))
+            await self.bot.conn.commit()
+            #send to the user:
+            dpy_compatible_log = discord.File(log_name_with_path)
+            os.remove(log_name_with_path)
         
-        user_modmail_closed_embed = discord.Embed(description = f'Modmail closed by {ctx.author.name}. At time of closure, the modmail\'s reason was "{modmail_reason}".').set_author(name = self.embed_details['author name'], icon_url = self.embed_details['author icon']).set_footer(text = 'Send another message to open a new modmail.')
+            user_modmail_closed_embed = discord.Embed(description = f'Modmail closed by {ctx.author.name}. At time of closure, the modmail\'s reason was "{modmail_reason}".').set_author(name = self.embed_details['author name'], icon_url = self.embed_details['author icon']).set_footer(text = 'Send another message to open a new modmail.')
 
-        await modmail_user.send(embed=user_modmail_closed_embed)
-        await modmail_user.send(content = 'Logs:', file=dpy_compatible_log)
+            await modmail_user.send(embed=user_modmail_closed_embed)
+            await modmail_user.send(content = 'Logs:', file=dpy_compatible_log)
+
+        else:
+            time_until_can_close = allowed_to_close_at - rightnowutc
+            await ctx.send(f'You cannot close this modmail yet. Modmail can be closed in {time_until_can_close.seconds} seconds.')
 
     @closemodmail.error
     async def closemodmail_error(self, ctx, error):
@@ -289,13 +301,13 @@ class Modmail(commands.Cog):
             c = await self.bot.conn.execute('SELECT * FROM activemodmails WHERE modmailchnlid=?', (ctx.channel.id,))
 
         my_row = await c.fetchone()
-        to_logs_reason_change = my_row[3] + f'{update_notice_str}\n\n'
+        to_logs_reason_change = my_row[4] + f'{update_notice_str}\n\n'
         
         c = await self.bot.conn.cursor()
-        await c.execute('UPDATE activemodmails SET reason=?, msglog=? WHERE modmailchnlid=? ', (reason, to_logs_reason_change, my_row[1]))
+        await c.execute('UPDATE activemodmails SET reason=?, msglog=? WHERE modmailchnlid=? ', (reason, to_logs_reason_change, my_row[2]))
         await self.bot.conn.commit()
-        modmail_channel = self.bot.get_channel(my_row[1])
-        modmail_user = self.bot.get_user(my_row[0])
+        modmail_channel = self.bot.get_channel(my_row[2])
+        modmail_user = self.bot.get_user(my_row[1])
         
         mod_reason_updated_msg = await modmail_channel.send(embed = update_notice_embed)
         await mod_reason_updated_msg.pin()
@@ -314,7 +326,7 @@ class Modmail(commands.Cog):
             if error.original.code==50035:
                 await ctx.send('Error: Reason is too long– please use this command again with a shorter reason.')
     
-
+#blacklist
     @commands.group()
     async def blacklist(self, ctx):
         if not ctx.invoked_subcommand:
@@ -371,6 +383,8 @@ class Modmail(commands.Cog):
         
         await ctx.send(embed = mod_confirmed_unblacklist_embed)
         await user_to_unblacklist.send(embed = user_inform_unblacklist_embed)
+
+#end blacklist
 
 def setup(bot: commands.Bot):
     bot.add_cog(Modmail(bot))
