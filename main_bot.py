@@ -26,6 +26,7 @@ async def startup():
         bot.conn = conn
         c = await conn.cursor()
         await c.execute('CREATE TABLE IF NOT EXISTS activemodmails (timestamp text, userid integer, modmailchnlid integer, reason text, msglog text)')
+        await c.execute('DROP TABLE IF EXISTS blacklist')
         await c.execute('CREATE TABLE IF NOT EXISTS blacklist (timestamp text, userid integer, username text)')
         await bot.conn.commit()
         await c.execute('SELECT * FROM blacklist')

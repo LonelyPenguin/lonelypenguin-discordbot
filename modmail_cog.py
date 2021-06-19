@@ -15,7 +15,7 @@ class Modmail(commands.Cog):
         self.bot = bot
         self.blacklisted_users = self.bot.blacklisted_users
         self.embed_details = {'author name': 'Servername Modmail', 'author icon': 'https://cdn.discordapp.com/attachments/743536411369799804/854865953083228181/mail_icon.png', 'footer': 'Use ;closemodmail to close this modmail, and ;modmailreason to change its reason.'}
-        self.dont_trigger_onmessage = [';closemodmail', ';modmailreason', ';openmodmail', ';reloadext', ';showdb', ';deletemanychannels', ';reason', ';ticketreason', ';newreason', ';closeticket', ';close', ';modmailclose', ';ticketclose', ';openticket', ';newmodmail', ';newticket', ';reload', ';reloadcog']
+        self.dont_trigger_onmessage = [';closemodmail', ';modmailreason', ';openmodmail', ';reloadext', ';showdb', ';deletemanychannels', ';reason', ';ticketreason', ';newreason', ';closeticket', ';close', ';modmailclose', ';ticketclose', ';openticket', ';newmodmail', ';newticket', ';reload', ';reloadcog', ';blacklist']
         print('\nReloaded cog\n----')
     
     def cog_check(self, ctx):
@@ -310,8 +310,8 @@ class Modmail(commands.Cog):
         modmail_user = self.bot.get_user(my_row[1])
         
         mod_reason_updated_msg = await modmail_channel.send(embed = update_notice_embed)
-        await mod_reason_updated_msg.pin()
         user_reason_updated_msg = await modmail_user.send(embed = update_notice_embed)
+        await mod_reason_updated_msg.pin()
         await user_reason_updated_msg.pin()
 
     @modmailreason.error
@@ -323,8 +323,10 @@ class Modmail(commands.Cog):
             await ctx.send(content = 'Missing a required argument. Proper syntax: `;modmailreason [reason]`.', delete_after = 5.0)
             await ctx.message.delete(delay = 4.75)
         elif isinstance(error.original, discord.HTTPException):
-            if error.original.code==50035:
+            if error.original.code == 50035:
                 await ctx.send('Error: Reason is too long– please use this command again with a shorter reason.')
+            if error.original.code == 30003:
+                await ctx.send('Note: Pinning the reason-change notice failed for either the user or for moderators. The reason was still changed. Unpin some older messages if you want newer reasons to be pinned.')
     
 #blacklist
     @commands.group()
@@ -336,17 +338,23 @@ class Modmail(commands.Cog):
     async def blacklist_add(self, ctx, user_to_blacklist: discord.Member):
         
         c = await self.bot.conn.cursor()
-        await c.execute('INSERT INTO blacklist VALUES (?,?,?)', (ctx.message.created_at, user_to_blacklist.id, user_to_blacklist.name))
-        await self.bot.conn.commit()
-        
-        c = await self.bot.conn.execute('SELECT * FROM blacklist')
-        self.blacklisted_users = await c.fetchall()
+        await c.execute('SELECT * FROM blacklist WHERE userid=?',(user_to_blacklist.id,))
+        if await c.fetchone() is None:
+            await c.execute('INSERT INTO blacklist VALUES (?,?,?)', (ctx.message.created_at, user_to_blacklist.id, user_to_blacklist.name))
+            await self.bot.conn.commit()
 
-        mod_confirmed_blacklist_embed = discord.Embed(description = f'Blacklisted {user_to_blacklist.mention} from interacting with the modmail system.').set_author(name = self.embed_details['author name'], icon_url = self.embed_details['author icon'])
-        user_inform_blacklist_embed = discord.Embed(description = 'You have been blacklisted from the modmail system– this bot will no longer respond to any of your messages. If you believe this was in error, please DM a moderator directly.').set_author(name = self.embed_details['author name'], icon_url = self.embed_details['author icon'])
+            c = await self.bot.conn.execute('SELECT * FROM blacklist')
+            self.blacklisted_users = await c.fetchall()
+
+            mod_confirmed_blacklist_embed = discord.Embed(description = f'Blacklisted {user_to_blacklist.mention} from interacting with the modmail system.').set_author(name = self.embed_details['author name'], icon_url = self.embed_details['author icon'])
+            user_inform_blacklist_embed = discord.Embed(description = 'You have been blacklisted from the modmail system– this bot will no longer respond to any of your messages. If you believe this was in error, please DM a moderator directly.').set_author(name =    self.embed_details['author name'], icon_url = self.embed_details['author icon'])
+
+            await ctx.send(embed = mod_confirmed_blacklist_embed)
+            await user_to_blacklist.send(embed = user_inform_blacklist_embed)
         
-        await ctx.send(embed = mod_confirmed_blacklist_embed)
-        await user_to_blacklist.send(embed = user_inform_blacklist_embed)
+        else:
+            user_already_blacklisted_embed = discord.Embed(description = 'User already blacklisted.')
+            await ctx.send(embed = user_already_blacklisted_embed)
     
     @blacklist.command(name = 'show')
     async def blacklist_show(self, ctx):
@@ -372,17 +380,24 @@ class Modmail(commands.Cog):
     async def blacklist_remove(self, ctx, user_to_unblacklist: discord.Member):
         
         c = await self.bot.conn.cursor()
-        await c.execute('DELETE FROM blacklist WHERE userid=?', (user_to_unblacklist.id,))
-        await self.bot.conn.commit()
-        
-        c = await self.bot.conn.execute('SELECT * FROM blacklist')
-        self.blacklisted_users = await c.fetchall()
+        await c.execute('SELECT * FROM blacklist WHERE userid=?', (user_to_unblacklist.id, ))
 
-        mod_confirmed_unblacklist_embed = discord.Embed(description = f'Removed {user_to_unblacklist.mention} from the blacklist. They can once again interact with the modmail system.').set_author(name = self.embed_details['author name'], icon_url = self.embed_details['author icon'])
-        user_inform_unblacklist_embed = discord.Embed(description = 'You have been removed from the modmail blacklist– you can once again use the modmail system.').set_author(name = self.embed_details['author name'], icon_url = self.embed_details['author icon'])
+        if await c.fetchone is not None:
+            await c.execute('DELETE FROM blacklist WHERE userid=?', (user_to_unblacklist.id,))
+            await self.bot.conn.commit()
+
+            c = await self.bot.conn.execute('SELECT * FROM blacklist')
+            self.blacklisted_users = await c.fetchall()
+
+            mod_confirmed_unblacklist_embed = discord.Embed(description = f'Removed {user_to_unblacklist.mention} from the blacklist. They can once again interact with the modmail system.').set_author(name = self.embed_details['author name'], icon_url = self. embed_details['author icon'])
+            user_inform_unblacklist_embed = discord.Embed(description = 'You have been removed from the modmail blacklist– you can once again use the modmail system.').set_author(name = self.embed_details['author name'], icon_url = self.embed_details['author icon']   )
+
+            await ctx.send(embed = mod_confirmed_unblacklist_embed)
+            await user_to_unblacklist.send(embed = user_inform_unblacklist_embed)
         
-        await ctx.send(embed = mod_confirmed_unblacklist_embed)
-        await user_to_unblacklist.send(embed = user_inform_unblacklist_embed)
+        else:
+            user_not_blacklisted_embed = discord.Embed(description = 'User is not blacklisted.')
+            await ctx.send(embed = user_not_blacklisted_embed)
 
 #end blacklist
 
