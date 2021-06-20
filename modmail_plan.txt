@@ -1,9 +1,6 @@
 todo:
 
-add more checks
-cooldowns/ratelimits (aaaaa)
-finish making embeds for error handlers
-add cooldown to modmail_reason?
-make blacklist mods-only
+figure out how to host???
+squash lingering syntax errors?
 
 notes/resources:

@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 import aiosqlite
 import asyncio
-from config.server_vars import logs_channel_id, server_id, modmail_category_id, moderator_role_ids
+from config.server_vars import logs_channel_id, server_id, modmail_category_id, moderator_ids
 import os
 import traceback
 import sys
@@ -10,23 +10,27 @@ import sys
 
 
 class Modmail(commands.Cog):
-    "Fully-featured modmail setup. DM this bot to open a modmail and speak to moderators. Use ;modmailreason and ;closemodmail in an open modmail (channel or DM) to change the modmail reason or close it. Once closed, users and moderators will be sent a log of the conversation. Attachements function as expected. Moderators can use ;openmodmail <userid> [reason] to open a modmail with a specific user. A \'✅\' reaction on a message means it\'s been successfully relayed, and messages without this reaction have not been relayed. A ✂️ means the message has been cut to stay within the character limit. If system does not function as expected, please contact LonelyPenguin#9931. Will chop off the end of messages if they're too long."
+    "Fully-featured modmail setup. DM this bot to open a modmail and speak to moderators. Use ;modmail reason and ;modmail close in an open modmail (channel or DM) to change the modmail reason or close it. Once closed, users and moderators will be sent a log of the conversation. Attachements function as expected. Moderators can use ;open modmail <userid> [reason] to open a modmail with a specific user. A \'✅\' reaction on a message means it\'s been successfully relayed, and messages without this reaction have not been relayed. A ✂️ means the message has been cut to stay within the character limit. If system does not function as expected, please contact LonelyPenguin#9931. Will chop off the end of messages if they're too long."
     
     def __init__(self, bot: commands.Bot):
         
         self.bot = bot
         self.blacklisted_users = self.bot.blacklisted_users
-        self.embed_details = {'author name': 'Servername Modmail', 'author icon': 'https://cdn.discordapp.com/attachments/743536411369799804/854865953083228181/mail_icon.png', 'footer': 'Use ;closemodmail to close this modmail, and ;modmailreason to change its reason.'}
-        self.dont_trigger_onmessage = [';closemodmail', ';modmailreason', ';openmodmail', ';reloadext', ';showdb', ';deletemanychannels', ';reason', ';ticketreason', ';newreason', ';closeticket', ';close', ';modmailclose', ';ticketclose', ';openticket', ';newmodmail', ';newticket', ';reload', ';reloadcog', ';blacklist']
+        self.embed_details = {'author name': 'Servername Modmail', 'author icon': 'https://cdn.discordapp.com/attachments/743536411369799804/854865953083228181/mail_icon.png', 'footer': 'Use ;modmail close to close this modmail, and ;modmail reason to change its reason.'}
+        self.dont_trigger_onmessage = [';modmail', ';reloadext', ';showdb', ';deletemanychannels', ';reload', ';reloadcog', ';blacklist']
         print('\nReloaded cog\n----')
     
     def cog_check(self, ctx):
-        return ctx.author.id not in [each_row[1] for each_row in self.blacklisted_users] or ctx.author.id == 305704400041803776 or ctx.author.top_role.id in moderator_role_ids
+        return ctx.author.id not in [each_row[1] for each_row in self.blacklisted_users] or ctx.author.id == 305704400041803776 or ctx.author.id in moderator_ids
 
     def check_if_moderator():
         def predicate(ctx):
-            return ctx.author.top_role.id in moderator_role_ids
+            return ctx.author.id in moderator_ids
         return commands.check(predicate)
+    
+    def simple_embed(self, desc: str):
+        my_embed = discord.Embed(description = desc)
+        return my_embed
 
     async def open_modmail_func(self, messagectx, modmailuserid, from_user: bool, modmailreason="no reason specified"):
         
@@ -36,8 +40,7 @@ class Modmail(commands.Cog):
             await messagectx.add_reaction('✂')
         message_content = messagectx.content[:1909]
 
-        opening_modmail_embed = discord.Embed(description = 'Opening a new modmail...')
-        opening_modmail_message = await modmail_user.send(embed = opening_modmail_embed)
+        opening_modmail_message = await modmail_user.send(embed = self.simple_embed('Opening a new modmail...'))
 
         c = await self.bot.conn.execute('SELECT * FROM activemodmails WHERE userid=?', (modmail_user.id,))
         if await c.fetchone() is None:
@@ -82,7 +85,7 @@ class Modmail(commands.Cog):
             await initial_mod_msg.pin()
         
         else:
-            avoid_duplicate_modmail_embed = discord.Embed(description = f'Error: you tried to open more than one modmail at once. The bot will handle this– no action is required on your part, and the rest of the modmail flow will continue as normal. However, the following message was *not* relayed, so you may want to send it again:')
+            avoid_duplicate_modmail_embed = self.simple_embed('Error: you tried to open more than one modmail at once. The bot will handle this– no action is required on your part, and the rest of the modmail flow will continue as normal. However, the following message was *not* relayed, so you may want to send it again:')
             
             if from_user:
                 await messagectx.author.send(embed = avoid_duplicate_modmail_embed)
@@ -113,7 +116,7 @@ class Modmail(commands.Cog):
 
             await messagectx.add_reaction('✅')
         except discord.Forbidden:
-            await messagectx.channel.send('Couldn\'t send a message to this user; they have probably blocked the bot. Try DMing them directly. (Alternatively, you have blocked this bot and it can\'t add a reaction to your message.)')
+            await messagectx.channel.send(embed = self.simple_embed('Couldn\'t send a message to this user; they have probably blocked the bot. Try DMing them directly. (Alternatively, you have blocked this bot and it can\'t add a reaction to your message.)'))
 
         log_entry = f"{messagectx.author.name}#{messagectx.author.discriminator} ({messagectx.author.id}) at {messagectx.created_at} UTC\n{message_content}\nAttachment(s): {[attachment.url for attachment in messagectx.attachments]}\n\n"
         updated_log = row[3] + log_entry
@@ -171,19 +174,16 @@ class Modmail(commands.Cog):
                         reaction, user = await self.bot.wait_for('reaction_add', timeout=30.0, check=check_reaction)
                         if str(reaction) == '👍': #if user confirms
                             
-                            opening_modmail_embed = discord.Embed(description = 'Okay, relaying your message to the moderators...')
-                            await msg_channel.send(embed = opening_modmail_embed)
+                            await msg_channel.send(embed = self.simple_embed('Okay, relaying your message to the moderators...'))
 
                             await self.open_modmail_func(message, msg_authorid, True) #open new modmail
 
                         elif str(reaction) == '🚫': #if user cancels
                             
-                            cancel_embed = discord.Embed(description = 'Cancelled.')
-                            await msg_channel.send(embed = cancel_embed)
+                            await msg_channel.send(embed = self.simple_embed('Cancelled.'))
 
                     except asyncio.TimeoutError: #if 30 seconds pass without user confirming or canceling
-                        timed_out_embed = discord.Embed(description = 'Timed out, process cancelled. To try again, send a new message.')
-                        await msg_channel.send(embed = timed_out_embed)
+                        await msg_channel.send(embed = self.simple_embed('Timed out, process cancelled. To try again, send a new message.'))
 
             else: #if not in DM
                 
@@ -197,11 +197,16 @@ class Modmail(commands.Cog):
 
 #commands to manage modmails
 
-    @commands.command(aliases = ['openticket', 'newmodmail', 'newticket'])
+    @commands.group()
+    async def modmail(self, ctx):
+        if not ctx.invoked_subcommand:
+            await ctx.send(embed = self.simple_embed('Run `;help modmail` for details.'))
+
+    @modmail.command(name = 'open', aliases = ['start', 'initiate', 'new'])
     @check_if_moderator()
     async def openmodmail(self, ctx, open_modmail_with_user: discord.Member, *, new_modmail_reason="no reason specified"):
         
-        "Command for moderators to open a new modmail with a designated user. Cannot be used by regular users. Syntax: ;openmodmail <user id or mention> [optional reason]. Will create a new modmail and inform the user that a moderator opened it. Reason defaults to 'no reason specified' and can be changed later using ;modmailreason. Upon use, bot will prompt for the initial message to relay to the designated user. Attempting to open two tickets at once with the same user will result in an error, but should be handled; if something goes wrong, contact LonelyPenguin#9931. Maximum length of reason is 72 characters."
+        "Command for moderators to open a new modmail with a designated user. Cannot be used by regular users. Syntax: ;open modmail <user id or mention> [optional reason]. Will create a new modmail and inform the user that a moderator opened it. Reason defaults to 'no reason specified' and can be changed later using ;modmail reason. Upon use, bot will prompt for the initial message to relay to the designated user. Attempting to open two tickets at once with the same user will result in an error, but should be handled; if something goes wrong, contact LonelyPenguin#9931. Maximum length of reason is 72 characters."
         
         if ctx.guild == self.bot.get_guild(server_id):
             
@@ -213,28 +218,29 @@ class Modmail(commands.Cog):
             
             await self.open_modmail_func(msg, int(open_modmail_with_user.id), False, modmailreason = new_modmail_reason[:71])
             await msg.add_reaction('👍')
+        else:
+            await ctx.send(embed = self.simple_embed('You must be in the server to use this command.'))
 
     @openmodmail.error
     async def openmodmail_error(self, ctx, error):
+        if isinstance(error, commands.CommandInvokeError):
+            error = error.original
         if isinstance(error, discord.Forbidden) or isinstance(error, AttributeError):
-            cant_dm_user_embed = discord.Embed(description = 'Error: Can\'t DM that user.')
-            await ctx.send(embed = cant_dm_user_embed)
+            await ctx.send(embed = self.simple_embed('Error: Can\'t DM that user.'))
         elif isinstance(error, asyncio.TimeoutError):
-            mod_timed_out_embed = discord.Embed(description = 'Timed out. Use the command ;openmodmail <userid> [reason] to try again.')
-            await ctx.send(embed = mod_timed_out_embed)
+            await ctx.send(embed = self.simple_embed('Timed out. Use the command ;open modmail <userid> [reason] to try again.'))
         elif isinstance(error, commands.MissingRequiredArgument):
-            await ctx.send(content = 'Missing a required argument. Proper syntax: `;modmailreason <reason>`.', delete_after = 5.0)
-            await ctx.message.delete(delay = 4.75)
-        elif isinstance(error.original, discord.HTTPException): #put at end pls
-            if error.original.code == 50035:
-                await ctx.send('Error: Your message or reason was too long to send. If a modmail channel is open, please use it as-is. Otherwise, run this command again with a shorter message.')
+            await ctx.send(embed = self.simple_embed('Missing a required argument. Proper syntax: `;modmail reason <reason>`.'))
+        elif isinstance(error, discord.HTTPException):
+            if error.code == 50035:
+                await ctx.send(embed = self.simple_embed('Error: Your message or reason was too long to send. If a modmail channel is open, please use it as-is. Otherwise, run this command again with a shorter message.'))
         else:
             # All other Errors not returned come here. And we can just print the default TraceBack.
             print('Ignoring exception in command {}:'.format(ctx.command), file=sys.stderr)
             traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
 
 
-    @commands.command(aliases = ['closeticket', 'close', 'modmailclose', 'ticketclose'])
+    @modmail.command(name = 'close', aliases = ['shutdown', 'finish', 'end'])
     @commands.cooldown(1, 300.0, commands.cooldowns.BucketType.channel)
     async def closemodmail(self, ctx):
         "Closes an open modmail. Must be used in the channel/DM attached to the modmail. Can be used by moderators or the modmail user. Upon use, will delete the modmail channel and send a log of its contents to both the modmail logs channel and the user from the modmail. No arguments needed."
@@ -258,7 +264,7 @@ class Modmail(commands.Cog):
         logs_channel = self.bot.get_channel(logs_channel_id)
         #send to moderators' logs:
         dpy_compatible_log = discord.File(log_name_with_path)
-        mod_modmail_closed_embed = discord.Embed(description = f'Modmail with {modmail_user.mention} closed by {ctx.author.name}. Modmail reason was "{modmail_reason}".').set_author(name = self.embed_details['author name'], icon_url = self.embed_details['author icon']).set_footer(text = 'Use ;openmodmail <userid> [reason] to open another modmail.')
+        mod_modmail_closed_embed = discord.Embed(description = f'Modmail with {modmail_user.mention} closed by {ctx.author.name}. Modmail reason was "{modmail_reason}".').set_author(name = self.embed_details['author name'], icon_url = self.embed_details['author icon']).set_footer(text = 'Use ;open modmail <userid> [reason] to open another modmail.')
         await logs_channel.send(embed = mod_modmail_closed_embed)
         await logs_channel.send(content = 'Logs:', file=dpy_compatible_log)
         await modmail_channel.delete()
@@ -275,31 +281,28 @@ class Modmail(commands.Cog):
 
     @closemodmail.error
     async def closemodmail_error(self, ctx, error):
-        if hasattr(error, 'original'): #isn't the original one when it's in a server or something?
-            if isinstance(error.original, TypeError):
-                await ctx.send(content = 'Error: You probably aren\'t in a modmail.', delete_after = 5.0)
-                await ctx.message.delete(delay = 4.75)
-            elif isinstance(error.original, discord.HTTPException):
-                if error.original.code==50035:
-                    await ctx.send('Error: Reason is too long– change the reason to a shorter one, then close the modmail.')
-        
-        elif isinstance(error, TypeError): #is the original one when it's in dms. weird
-            await ctx.send(content = 'Error: You probably aren\'t in a modmail.', delete_after = 5.0)
+        if isinstance(error, commands.CommandInvokeError):
+            error = error.original
+        if isinstance(error, TypeError):
+            await ctx.send(embed = self.simple_embed('Error: You probably aren\'t in a modmail.'), delete_after = 5.0)
             await ctx.message.delete(delay = 4.75)
+        elif isinstance(error, discord.HTTPException):
+            if error.code==50035:
+                await ctx.send(embed = self.simple_embed('Error: Reason is too long– change the reason to a shorter one, then close the modmail.'))
         elif isinstance(error, discord.Forbidden):
-            await ctx.send('Modmail closed, but couldn\'t DM the user to notify them.')
+            await ctx.send(embed = self.simple_embed('Modmail closed, but couldn\'t DM the user to notify them.'))
         elif isinstance(error, commands.CommandOnCooldown):
-            await ctx.send(f'You can\'t close this modmail for another {round(error.retry_after)} seconds. This is probably because you have very recently closed a different modmail. You can ask a moderator to close this modmail for you if that\'s convenient.')
+            await ctx.send(embed = self.simple_embed(f'You can\'t close this modmail for another {round(error.retry_after)} seconds. This is probably because you have very recently closed a different modmail. You can ask a moderator to close this modmail for you if that\'s convenient.'))
         else:
             # All other Errors not returned come here. And we can just print the default TraceBack.
             print('Ignoring exception in command {}:'.format(ctx.command), file=sys.stderr)
             traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
 
 
-    @commands.command(aliases = ['reason', 'ticketreason', 'newreason'])
+    @modmail.command(name = 'reason', aliases = ['topic', 'subject'])
     @commands.cooldown(2, 10.0, commands.cooldowns.BucketType.channel)
     async def modmailreason(self, ctx, *, reason: str):
-        "Set a new reason for an open modmail. Can be used in either an open modmail channel or a DM with an active modmail attached. Overwrites previous reasons, but reason changes are logged. A modmail's latest reason is given upon closure. Moderators can optionally set a reason for a modmail when opening one with ;openmodmail. Syntax: ;modmailreason <new reason>."
+        "Set a new reason for an open modmail. Can be used in either an open modmail channel or a DM with an active modmail attached. Overwrites previous reasons, but reason changes are logged. A modmail's latest reason is given upon closure. Moderators can optionally set a reason for a modmail when opening one with ;open modmail. Syntax: ;modmail reason <new reason>."
 
         reason = reason[:71]
         update_notice_str = f'{ctx.author.name}#{ctx.author.discriminator} set the modmail topic/reason to "{reason}"'
@@ -326,24 +329,20 @@ class Modmail(commands.Cog):
 
     @modmailreason.error
     async def modmailreason_error(self, ctx, error):
-        if hasattr(error, 'original'):
-            if isinstance(error.original, TypeError): #isn't the original one when it's in a server? i think
-                await ctx.send(content = 'Error: You probably aren\'t in a modmail.', delete_after = 5.0)
-                await ctx.message.delete(delay = 4.75)
-            elif isinstance(error.original, discord.HTTPException):
-                if error.original.code == 50035:
-                    await ctx.send('Error: Reason is too long– please use this command again with a shorter reason.')
-                if error.original.code == 30003:
-                    await ctx.send('Note: Pinning the reason-change notice failed for either the user or for moderators. The reason was still changed. Unpin some older messages if you want newer reasons to be pinned.')
-        
-        elif isinstance(error, TypeError): #is the original one when it's in dms. weird
-            await ctx.send(content = 'Error: You probably aren\'t in a modmail.', delete_after = 5.0)
+        if isinstance(error, commands.CommandInvokeError):
+            error = error.original
+        if isinstance(error, TypeError):
+            await ctx.send(embed = self.simple_embed('Error: You probably aren\'t in a modmail.'), delete_after = 5.0)
             await ctx.message.delete(delay = 4.75)
+        elif isinstance(error, discord.HTTPException):
+            if error.code == 50035:
+                await ctx.send(embed = self.simple_embed('Error: Reason is too long– please use this command again with a shorter reason.'))
+            if error.code == 30003:
+                await ctx.send(embed = self.simple_embed('Note: Pinning the reason-change notice failed for either the user or for moderators. The reason was still changed. Unpin some older messages if you want newer reasons to be pinned.'))
         elif isinstance(error, commands.MissingRequiredArgument):
-            await ctx.send(content = 'Missing a required argument. Proper syntax: `;modmailreason [reason]`.', delete_after = 5.0)
-            await ctx.message.delete(delay = 4.75)
+            await ctx.send(embed = self.simple_embed('Missing a required argument. Proper syntax: `;modmail reason [reason]`.'))
         elif isinstance(error, commands.CommandOnCooldown):
-            await ctx.send(f'You can\'t change this modmail\'s reason again for another {round(error.retry_after)} seconds.')
+            await ctx.send(embed = self.simple_embed(f'You can\'t change this modmail\'s reason again for another {round(error.retry_after)} seconds.'))
         else:
             # All other Errors not returned come here. And we can just print the default TraceBack.
             print('Ignoring exception in command {}:'.format(ctx.command), file=sys.stderr)
@@ -353,13 +352,15 @@ class Modmail(commands.Cog):
     @commands.group()
     @check_if_moderator()
     async def blacklist(self, ctx):
+        "Commands to prevent certain users from using the modmail bot (e.g. if they're spamming)."
         if not ctx.invoked_subcommand:
-            await ctx.send('Run `;help blacklist` for details, or `;blacklist show` to view the current blacklist.')
+            await ctx.send(embed = self.simple_embed('Run `;help blacklist` for details, or `;blacklist show` to view the current blacklist.'))
 
     @blacklist.command(name='add')
     @check_if_moderator()
     async def blacklist_add(self, ctx, user_to_blacklist: discord.Member):
-        
+        "Adds a user to the blacklist (prevents them from using the bot). Remove someone from the blacklist with ;blacklist remove.Only moderators can use this command. Users will be notified that they are blacklisted."
+
         c = await self.bot.conn.cursor()
         await c.execute('SELECT * FROM blacklist WHERE userid=?',(user_to_blacklist.id,))
         if await c.fetchone() is None:
@@ -376,13 +377,12 @@ class Modmail(commands.Cog):
             await user_to_blacklist.send(embed = user_inform_blacklist_embed)
         
         else:
-            user_already_blacklisted_embed = discord.Embed(description = 'User already blacklisted.')
-            await ctx.send(embed = user_already_blacklisted_embed)
+            await ctx.send(embed = self.simple_embed('User already blacklisted.'))
     
     @blacklist.command(name = 'show')
     @check_if_moderator()
     async def blacklist_show(self, ctx):
-        
+        "Shows the current state of the blacklist (who's on it and when they were blacklisted). Blacklist someone with ;blacklist add and unblacklist them with ;blacklist remove. Only moderators can use this command."
         c = await self.bot.conn.execute('SELECT * FROM blacklist')
         full_blacklist_table = await c.fetchall()
         await self.bot.conn.commit()
@@ -403,7 +403,7 @@ class Modmail(commands.Cog):
     @blacklist.command(name = 'remove')
     @check_if_moderator()
     async def blacklist_remove(self, ctx, user_to_unblacklist: discord.Member):
-        
+        "Unblacklists a user, allowing them to make use of the bot again. Only moderators can use this command. Users will be notified that they are unblacklisted. Add someone to the blacklist with ;blacklist add."
         c = await self.bot.conn.cursor()
         await c.execute('SELECT * FROM blacklist WHERE userid=?', (user_to_unblacklist.id,))
 
@@ -421,8 +421,7 @@ class Modmail(commands.Cog):
             await user_to_unblacklist.send(embed = user_inform_unblacklist_embed)
         
         else:
-            user_not_blacklisted_embed = discord.Embed(description = 'User is not blacklisted.')
-            await ctx.send(embed = user_not_blacklisted_embed)
+            await ctx.send(embed = self.simple_embed('User is not blacklisted.'))
 
 #end blacklist
 
