@@ -250,4 +250,4 @@ async def showdb(ctx):
     await ctx.send(content=f'Current contents of activemodmails table:', file=dpy_compatible_showtable_file)
 
 
-bot.run('ODA5ODM2NTA2ODg1MTI4MjEy.YCa5BQ.WQmMuHidMDgwwPxGhLlaYqSb0d4')
+bot.run('placeholder')
