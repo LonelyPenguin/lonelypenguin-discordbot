@@ -156,3 +156,4 @@ private.py
 .vscode/launch.json
 modmail.db
 example.db
+config/__pycache__/private.cpython-37.pyc
