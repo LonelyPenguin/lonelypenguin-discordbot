@@ -55,6 +55,44 @@ class Modmail_auxiliaries(commands.Cog):
         except Exception as e:
             await ctx.send(f'Something went wrong: {e}')
 
+    @commands.command()
+    async def cleandb(self, ctx, user_id):
+
+        user_id = int(user_id)
+
+        c = await self.bot.conn.cursor()
+        await c.execute('SELECT * FROM activemodmails WHERE userid=?', (user_id,))
+        my_rows = await c.fetchall()
+        my_str = '```userid, modmailchnlid, reason (log not shown, use showdb)\n\n'
+        for row in my_rows:
+            my_str += f'({row[0]}, {row[1]}, {row[2]})\n'
+        my_str += '```'
+        
+        confirm_message = await ctx.send(f'Are you sure you want to delete these entries (tied to <@{user_id}>) from the database? **This will not create logs or notify anyone involved.** It also will not delete the channel. Be certain. \n\n{my_str}')
+        
+        confirm_send = ['👍','✅','☑️','✔️','🆗','👌']
+        cancel_send = ['🚫','❌','👎']
+
+        def check_reaction(reaction, user):
+            return user == ctx.author and reaction.message.id == confirm_message.id and (str(reaction.emoji) in confirm_send or str(reaction.emoji) in cancel_send)
+
+        try: #ask for confirmation, create new modmail, and relay message
+            reaction, user = await self.bot.wait_for('reaction_add', timeout=30.0, check=check_reaction)
+            
+            if str(reaction) in confirm_send: #if user confirms
+                await ctx.send(f'Okay, removing the database entries tied to <@{user_id}>.')
+                
+                await c.execute('DELETE FROM activemodmails WHERE userid=?',(user_id,))
+                await self.bot.conn.commit()
+
+                await ctx.send('Done.')
+
+            elif str(reaction) in cancel_send: #if user cancels
+                await ctx.send('Cancelled.')
+
+        except asyncio.TimeoutError: #if 30 seconds pass without user confirming or canceling
+            await ctx.send('Timed out, process cancelled.')
+
 
 def setup(bot: commands.Bot):
     bot.add_cog(Modmail_auxiliaries(bot))
