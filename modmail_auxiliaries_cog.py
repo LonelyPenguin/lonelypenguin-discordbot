@@ -2,7 +2,6 @@ import discord
 from discord.ext import commands
 import aiosqlite
 import asyncio
-import json
 import os
 
 class Modmail_auxiliaries(commands.Cog):
@@ -17,9 +16,9 @@ class Modmail_auxiliaries(commands.Cog):
     @commands.command()
     async def deletemanychannels(self, ctx, *, list_of_ids: str):
         "A command that deletes all channels from IDs in a list. List must be structured as '[id, id, id]', without quotes. This command is meant for use in development, as testing of the modmail system often leaves behind orphaned modmail channels. Not designed or tested for widespread use. Only responds to LonelyPenguin."
-        ids_actual_int_list = json.loads(list_of_ids)
+        ids_actual_int_list = list_of_ids.split()
         for chnl_id in ids_actual_int_list:
-            fated_to_die_chnl = self.bot.get_channel(chnl_id)
+            fated_to_die_chnl = self.bot.get_channel(int(chnl_id))
             await asyncio.sleep(1)
             await fated_to_die_chnl.delete()
         await ctx.message.add_reaction('👍')
