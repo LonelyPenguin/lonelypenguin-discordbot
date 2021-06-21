@@ -95,7 +95,6 @@ class Modmail(commands.Cog):
                 await opening_modmail_message.delete()
                 await messagectx.channel.send(embed = avoid_duplicate_modmail_embed)
                 await messagectx.channel.send(message_content)
-        
 
     async def relay_message(self, messagectx, row, from_user: bool):
 
@@ -273,18 +272,21 @@ class Modmail(commands.Cog):
         modmail_user = self.bot.get_user(my_row[0])
         modmail_reason = my_row[2]
         log_filename = f'log-{modmail_user.name}-{modmail_reason}.txt'
+        
         with open(log_filename, 'w') as logs_txt_file:
             logs_txt_file.write(my_row[3])
             log_name_with_path = logs_txt_file.name
         logs_channel = self.bot.get_channel(logs_channel_id)
+        
         #send to moderators' logs:
         dpy_compatible_log = discord.File(log_name_with_path)
         mod_modmail_closed_embed = discord.Embed(description = f'Modmail with {modmail_user.mention} closed by {ctx.author.name}. Modmail reason was "{modmail_reason}".').set_author(name = self.embed_details['author name'], icon_url = self.embed_details['author icon']).set_footer(text = 'Use ;open modmail <userid> [reason] to open another modmail.')
+        
         await logs_channel.send(embed = mod_modmail_closed_embed)
         await logs_channel.send(content = 'Logs:', file=dpy_compatible_log)
-        await modmail_channel.delete()
         await c.execute('DELETE FROM activemodmails WHERE modmailchnlid=?', (my_row[1],))
         await self.bot.conn.commit()
+        
         #send to the user:
         dpy_compatible_log = discord.File(log_name_with_path)
         os.remove(log_name_with_path)
@@ -293,6 +295,7 @@ class Modmail(commands.Cog):
         await modmail_user.send(embed=user_modmail_closed_embed)
         await modmail_user.send(content = 'Logs:', file=dpy_compatible_log)
 
+        await modmail_channel.delete()
 
     @closemodmail.error
     async def closemodmail_error(self, ctx, error):
