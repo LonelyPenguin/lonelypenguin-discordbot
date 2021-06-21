@@ -132,75 +132,80 @@ class Modmail(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message):
+        try:
+            if message.author.id != self.bot.user.id and all([not message.content.startswith(x) for x in self.dont_trigger_onmessage]) and message.author.id not in [each_row[1] for each_row in self.blacklisted_users]: #if message not sent by the bot and doesn't start with a command and user not blacklisted 
 
-        if message.author.id != self.bot.user.id and all([not message.content.startswith(x) for x in self.dont_trigger_onmessage]) and message.author.id not in [each_row[1] for each_row in self.blacklisted_users]: #if message not sent by the bot and doesn't start with a command and user not blacklisted 
+                msg_channel = message.channel
+                msg_channelid = message.channel.id
+                msg_guild = message.guild
+                msg_authorid = message.author.id
 
-            msg_channel = message.channel
-            msg_channelid = message.channel.id
-            msg_guild = message.guild
-            msg_authorid = message.author.id
+                my_guild = self.bot.get_guild(server_id)
+                member_of_my_guild = my_guild.get_member(msg_authorid)
             
-            my_guild = self.bot.get_guild(server_id)
-            member_of_my_guild = my_guild.get_member(msg_authorid)
-            
-            if msg_guild is None and member_of_my_guild is not None: #if in DM and user in the guild
+                if msg_guild is None and member_of_my_guild is not None: #if in DM and user in the guild
 
                 
-                c = await self.bot.conn.execute('SELECT * FROM activemodmails WHERE userid=?', (msg_authorid,))
-                my_row = await c.fetchone()
-                await self.bot.conn.commit()
+                    c = await self.bot.conn.execute('SELECT * FROM activemodmails WHERE userid=?', (msg_authorid,))
+                    my_row = await c.fetchone()
+                    await self.bot.conn.commit()
                 
 
-                if my_row is not None: #if message in DM and part of an active modmail, relay message
-                    try:
-                        await self.relay_message(message, my_row, True)
-                    except discord.Forbidden:
-                        await msg_channel.send(embed = self.simple_embed('Error: bot lacks permissions to relay your message. Please contact a moderator directly.'))
+                    if my_row is not None: #if message in DM and part of an active modmail, relay message
+                        try:
+                            await self.relay_message(message, my_row, True)
+                        except discord.Forbidden:
+                            await msg_channel.send(embed = self.simple_embed('Error: bot lacks permissions to relay your message. Please contact a moderator directly.'))
                     
-                else: #if message in DM and not part of an active modmail, create modmail
+                    else: #if message in DM and not part of an active modmail, create modmail
 
-                    if len(message.content) >= 1910:
-                        await message.add_reaction('✂')
-                    msg_content = message.content[:1909]
+                        if len(message.content) >= 1910:
+                            await message.add_reaction('✂')
+                        msg_content = message.content[:1909]
 
-                    initiate_modmail_embed = discord.Embed(description = f'Initiating a new modmail. React with 👍 to send this message to KotLC Chats moderators. To cancel, react with 🚫.\n\n**Your message**:\n\n {msg_content}').set_author(name = self.embed_details['author name'], icon_url = self.embed_details['author icon'])
-                    bot_msg = await msg_channel.send(embed = initiate_modmail_embed)
+                        initiate_modmail_embed = discord.Embed(description = f'Initiating a new modmail. React with 👍 to send this message to KotLC Chats moderators. To cancel, react with 🚫.\n\n**Your message**:\n\n {msg_content}').set_author(name = self.embed_details['author name'], icon_url = self.embed_details['author icon'])
+                        bot_msg = await msg_channel.send(embed = initiate_modmail_embed)
                     
-                    await bot_msg.add_reaction('👍')
-                    await bot_msg.add_reaction('🚫')
+                        await bot_msg.add_reaction('👍')
+                        await bot_msg.add_reaction('🚫')
 
-                    def check_reaction(reaction, user):
-                        confirm_send = '👍'
-                        cancel_send = '🚫'
-                        return user == message.author and reaction.message.id == bot_msg.id and (str(reaction.emoji) == confirm_send or str(reaction.emoji) == cancel_send)
+                        def check_reaction(reaction, user):
+                            confirm_send = '👍'
+                            cancel_send = '🚫'
+                            return user == message.author and reaction.message.id == bot_msg.id and (str(reaction.emoji) == confirm_send or str(reaction.emoji) == cancel_send)
                         
-                    try: #ask for confirmation, create new modmail, and relay message
-                        reaction, user = await self.bot.wait_for('reaction_add', timeout=30.0, check=check_reaction)
-                        if str(reaction) == '👍': #if user confirms
+                        try: #ask for confirmation, create new modmail, and relay message
+                            reaction, user = await self.bot.wait_for('reaction_add', timeout=30.0, check=check_reaction)
+                            if str(reaction) == '👍': #if user confirms
                             
-                            await msg_channel.send(embed = self.simple_embed('Okay, relaying your message to the moderators...'))
+                                await msg_channel.send(embed = self.simple_embed('Okay, relaying your message to the moderators...'))
 
-                            await self.open_modmail_func(message, msg_authorid, True) #open new modmail
+                                await self.open_modmail_func(message, msg_authorid, True) #open new modmail
 
-                        elif str(reaction) == '🚫': #if user cancels
+                            elif str(reaction) == '🚫': #if user cancels
                             
-                            await msg_channel.send(embed = self.simple_embed('Cancelled.'))
+                                await msg_channel.send(embed = self.simple_embed('Cancelled.'))
 
-                    except asyncio.TimeoutError: #if 30 seconds pass without user confirming or canceling
-                        await msg_channel.send(embed = self.simple_embed('Timed out, process cancelled. To try again, send a new message.'))
+                        except asyncio.TimeoutError: #if 30 seconds pass without user confirming or canceling
+                            await msg_channel.send(embed = self.simple_embed('Timed out, process cancelled. To try again, send a new message.'))
 
-            else: #if not in DM
+                else: #if not in DM
                 
-                c = await self.bot.conn.execute('SELECT * FROM activemodmails WHERE modmailchnlid=?', (msg_channelid, ))
-                my_row = await c.fetchone()
-                await self.bot.conn.commit()
+                    c = await self.bot.conn.execute('SELECT * FROM activemodmails WHERE modmailchnlid=?', (msg_channelid, ))
+                    my_row = await c.fetchone()
+                    await self.bot.conn.commit()
                 
 
-                if my_row is not None: #if in active modmail channel
-                    try:
-                        await self.relay_message(message, my_row, False)
-                    except discord.Forbidden:
-                        await msg_channel.send(embed = self.simple_embed('Error: couldn\'t DM that user.'))
+                    if my_row is not None: #if in active modmail channel
+                        try:
+                            await self.relay_message(message, my_row, False)
+                        except discord.Forbidden:
+                            await msg_channel.send(embed = self.simple_embed('Error: couldn\'t DM that user.'))
+        
+        except Exception as error:
+            await message.channel.send(embed = self.simple_embed(f'Something went wrong: {error}'))
+            print('Ignoring exception in on_message listener:', file=sys.stderr)
+            traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
 
 #commands to manage modmails
 
@@ -244,7 +249,8 @@ class Modmail(commands.Cog):
         elif isinstance(error, commands.MemberNotFound):
             await ctx.send(embed = self.simple_embed(f'Error: member not found. ({error})'))
         else:
-            # All other Errors not returned come here. And we can just print the default TraceBack.
+            # All other errors not returned come here. And we can just print the default Traceback.
+            await ctx.send(embed = self.simple_embed(f'Something went wrong: {error}'))
             print('Ignoring exception in command {}:'.format(ctx.command), file=sys.stderr)
             traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
 
@@ -303,7 +309,8 @@ class Modmail(commands.Cog):
         elif isinstance(error, commands.CommandOnCooldown):
             await ctx.send(embed = self.simple_embed(f'On cooldown: You can\'t close this modmail for another {round(error.retry_after)} seconds. This is probably because you have very recently closed a different modmail. You can ask a moderator to close this modmail for you if that\'s convenient. ({error})'))
         else:
-            # All other Errors not returned come here. And we can just print the default TraceBack.
+            # All other errors not returned come here. And we can just print the default Traceback.
+            await ctx.send(embed = self.simple_embed(f'Something went wrong: {error}'))
             print('Ignoring exception in command {}:'.format(ctx.command), file=sys.stderr)
             traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
 
@@ -358,7 +365,8 @@ class Modmail(commands.Cog):
             else:
                 await ctx.send(embed = self.simple_embed(f'Note: Changed the reason, but couldn\'t DM the user– they have probably blocked the bot. ({error})'))
         else:
-            # All other Errors not returned come here. And we can just print the default TraceBack.
+            # All other errors not returned come here. And we can just print the default Traceback.
+            await ctx.send(embed = self.simple_embed(f'Something went wrong: {error}'))
             print('Ignoring exception in command {}:'.format(ctx.command), file=sys.stderr)
             traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
     
@@ -441,12 +449,13 @@ class Modmail(commands.Cog):
     async def blacklist_add_error(self, ctx, error):
         if isinstance(error, commands.CommandInvokeError):
             error = error.original
-        elif isinstance(error, discord.Forbidden):
-            await ctx.send(embed = self.simple_embed(f'Note: Blacklisted user, but probably was not able to DM the user to notify them. ({error})'))
+        if isinstance(error, discord.Forbidden):
+            await ctx.send(embed = self.simple_embed(f'Note: Blacklisted user, but couldn\'t notify them– they have probably blocked the bot. ({error})'))
         elif isinstance(error, commands.MemberNotFound):
             await ctx.send(embed = self.simple_embed(f'Error: member not found. ({error})'))
         else:
-            # All other Errors not returned come here. And we can just print the default TraceBack.
+            # All other errors not returned come here. And we can just print the default Traceback.
+            await ctx.send(embed = self.simple_embed(f'Something went wrong: {error}'))
             print('Ignoring exception in command {}:'.format(ctx.command), file=sys.stderr)
             traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
 
@@ -454,12 +463,13 @@ class Modmail(commands.Cog):
     async def blacklist_remove_error(self, ctx, error):
         if isinstance(error, commands.CommandInvokeError):
             error = error.original
-        elif isinstance(error, discord.Forbidden):
-            await ctx.send(embed = self.simple_embed(f'Note: Unblacklisted user, but probably was not able to DM the user to notify them. ({error})'))
+        if isinstance(error, discord.Forbidden):
+            await ctx.send(embed = self.simple_embed(f'Note: Unblacklisted user, but but couldn\'t notify them– they have probably blocked the bot. ({error})'))
         elif isinstance(error, commands.MemberNotFound):
             await ctx.send(embed = self.simple_embed(f'Error: member not found. ({error})'))
         else:
-            # All other Errors not returned come here. And we can just print the default TraceBack.
+            # All other errors not returned come here. And we can just print the default Traceback.
+            await ctx.send(embed = self.simple_embed(f'Something went wrong: {error}'))
             print('Ignoring exception in command {}:'.format(ctx.command), file=sys.stderr)
             traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
 #end blacklist
