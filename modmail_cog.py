@@ -311,6 +311,8 @@ class Modmail(commands.Cog):
             await ctx.send(embed = self.simple_embed(f'Note: Modmail closed, but couldn\'t DM the user to notify them. ({error})'))
         elif isinstance(error, commands.CommandOnCooldown):
             await ctx.send(embed = self.simple_embed(f'On cooldown: You can\'t close this modmail for another {round(error.retry_after)} seconds. This is probably because you have very recently closed a different modmail. You can ask a moderator to close this modmail for you if that\'s convenient. ({error})'))
+        elif isinstance(error, AttributeError):
+            await ctx.send(embed = self.simple_embed(f'Error: Modmail channel was probably already deleted. Modmail has probably still been closed, though. ({error})'))
         else:
             # All other errors not returned come here. And we can just print the default Traceback.
             await ctx.send(embed = self.simple_embed(f'Something went wrong: {error}'))
