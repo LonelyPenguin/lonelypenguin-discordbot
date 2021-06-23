@@ -9,6 +9,7 @@ class Modmail_auxiliaries(commands.Cog):
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+        print("Loaded/reloaded modmail_auxiliaries_cog")
 
     def cog_check(self, ctx):
         return ctx.message.author.id == 305704400041803776
