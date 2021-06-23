@@ -3,6 +3,7 @@ import discord
 import logging
 import aiosqlite
 from discord.ext import commands
+from discord.ext.commands.help import MinimalHelpCommand
 from config.private import token
 
 logger = logging.getLogger("discord")
@@ -35,6 +36,8 @@ async def startup():
 
         for extension in all_extensions: 
             bot.load_extension(extension)
+
+        bot.help_command = commands.MinimalHelpCommand()
 
         print(f'\nStarting bot up \n----')
 
