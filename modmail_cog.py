@@ -31,7 +31,7 @@ class Modmail(commands.Cog):
                               'footer': 'Use ;modmail close to close this modmail, and ;modmail reason to change its reason.'}
         self.dont_trigger_onmessage = [';modmail', ';reloadext', ';showdb',
                                        ';deletemanychannels', ';reload', ';reloadcog', ';blacklist']
-        print('\nReloaded cog\n----')
+        print('\nLoaded/reloaded modmail_cog\n----')
 
     def cog_check(self, ctx):
         return ctx.author.id not in [each_row[1] for each_row in self.blacklisted_users] or ctx.author.id == 305704400041803776 or ctx.author.id in moderator_ids
