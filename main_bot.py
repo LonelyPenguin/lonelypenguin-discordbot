@@ -3,7 +3,6 @@ import discord
 import logging
 import aiosqlite
 from discord.ext import commands
-from discord.ext.commands.help import MinimalHelpCommand
 from config.private import token
 
 logger = logging.getLogger("discord")
