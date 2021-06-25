@@ -344,7 +344,6 @@ class Modmail(commands.Cog):
         user_modmail_closed_embed = discord.Embed(description=f'Modmail closed by {ctx.author.name}. At time of closure, the modmail\'s reason was "{modmail_reason}".').set_author(
             name=self.embed_details['author name'], icon_url=self.embed_details['author icon']).set_footer(text='Send another message to open a new modmail.')
         await modmail_user.send(embed=user_modmail_closed_embed)
-        await modmail_user.send(content='Logs (from moderators\' perspective):', file=dpy_compatible_log)
 
         await modmail_channel.delete()
 
