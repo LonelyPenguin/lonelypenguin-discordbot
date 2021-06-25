@@ -14,13 +14,19 @@ handler.setFormatter(logging.Formatter(
     "%(asctime)s:%(levelname)s:%(name)s: %(message)s"))
 logger.addHandler(handler)
 
+
 async def startup():
 
     intents = discord.Intents.all()
 
-    myactivity = discord.Activity(name='DMs from you', type=discord.ActivityType.listening)
-    bot = commands.Bot(command_prefix=commands.when_mentioned_or(';'), intents=intents, activity=myactivity)
+    myactivity = discord.Activity(
+        name='DMs from you', type=discord.ActivityType.listening)
 
+    bot = commands.Bot(
+        command_prefix=commands.when_mentioned_or(';'),
+        intents=intents, activity=myactivity,
+        help_command=commands.MinimalHelpCommand()
+        )
 
     async with aiosqlite.connect('modmail.db') as conn:
 
@@ -31,17 +37,14 @@ async def startup():
         await bot.conn.commit()
         await c.execute('SELECT * FROM blacklist')
         bot.blacklisted_users = await c.fetchall()
-        
+
         all_extensions = ['modmail_cog', 'modmail_auxiliaries_cog']
 
-        for extension in all_extensions: 
+        for extension in all_extensions:
             bot.load_extension(extension)
-
-        bot.help_command = commands.MinimalHelpCommand()
 
         print(f'\nStarting bot up \n----')
 
         await bot.start(token)
 
 asyncio.run(startup())
-
