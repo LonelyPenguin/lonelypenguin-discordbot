@@ -7,6 +7,7 @@ from config.server_vars import logs_channel_id, server_id, modmail_category_id, 
 import os
 import traceback
 import sys
+import textwrap
 # endregion
 
 
@@ -65,13 +66,10 @@ class Modmail(commands.Cog):
             modmail_private_cat = my_guild.get_channel(modmail_category_id)
             modmail_channel = await modmail_private_cat.create_text_channel(f'{modmail_user.name}{modmail_user.discriminator}')
 
-            first_log_entry = f"{messagectx.author.name}#{messagectx.author.discriminator} ({messagectx.author.id}) at {messagectx.created_at} UTC\n{message_content}\nAttachment(s): {[attachment.url for attachment in messagectx.attachments]}\n\n"
-
-            new_row = (modmail_user.id, modmail_channel.id,
-                       modmailreason, first_log_entry)
+            new_row = (modmail_user.id, modmail_channel.id, modmailreason)
 
             c = await self.bot.conn.cursor()
-            await c.execute('INSERT INTO activemodmails VALUES (?,?,?,?)', new_row)
+            await c.execute('INSERT INTO activemodmails VALUES (?,?,?)', new_row)
             await self.bot.conn.commit()
 
             if from_user:
@@ -87,7 +85,7 @@ class Modmail(commands.Cog):
                 mod_modmail_opened_embed = discord.Embed(description=f'Modmail opened by moderator {messagectx.author.mention} to talk to user {modmail_user.mention}. The reason for this modmail is "{modmailreason}".\n\nA ✅ on your message means it\'s been successfully relayed.\n\n**{messagectx.author.name}\'s initial message**:\n\n{message_content[:1639]}').set_author(
                     name=self.embed_details['author name'], icon_url=self.embed_details['author icon']).set_footer(text=self.embed_details['footer'])
 
-                user_modmail_opened_embed = discord.Embed(description=f'A moderator on KotLC Chats opened a new modmail to speak with you (see their message below). Send a message in this DM to respond. The reason for this modmail is "{modmailreason}." \n\nAll messages sent will be relayed back and forth between you and the moderators. A ✅ on your message means it\'s been successfully relayed, and a ✂️ means it has been cut to stay within the character limit.').set_author(
+                user_modmail_opened_embed = discord.Embed(description=f'A moderator on KotLC Chats opened a new modmail to speak with you (see their message below). Send a message in this DM to respond. The reason for this modmail is "{modmailreason}". \n\nAll messages sent will be relayed back and forth between you and the moderators. A ✅ on your message means it\'s been successfully relayed, and a ✂️ means it has been cut to stay within the character limit.').set_author(
                     name=self.embed_details['author name'], icon_url=self.embed_details['author icon']).set_footer(text=self.embed_details['footer'])
 
                 relay_first_message_to = modmail_user
@@ -137,15 +135,6 @@ class Modmail(commands.Cog):
             await messagectx.add_reaction('✅')
         except discord.Forbidden as error:
             await messagectx.channel.send(embed=self.simple_embed(f'Error: Couldn\'t send a message to this user; they have probably blocked the bot. Try DMing them directly. (Alternatively, bot can\'t add a reaction to your message.) ({error})'))
-
-        log_entry = f"{messagectx.author.name}#{messagectx.author.discriminator} ({messagectx.author.id}) at {messagectx.created_at} UTC\n{message_content}\nAttachment(s): {[attachment.url for attachment in messagectx.attachments]}\n\n"
-        updated_log = row[3] + log_entry
-
-        to_update = (updated_log, row[1])
-
-        c = await self.bot.conn.cursor()
-        await c.execute('UPDATE activemodmails SET msglog=? WHERE modmailchnlid=?', to_update)
-        await self.bot.conn.commit()
 
     # endregion
 
@@ -306,18 +295,40 @@ class Modmail(commands.Cog):
 
         my_row = await c.fetchone()
 
+        logs_channel = self.bot.get_channel(logs_channel_id)
         modmail_channel = self.bot.get_channel(my_row[1])
         modmail_user = self.bot.get_user(my_row[0])
         modmail_reason = my_row[2]
-        log_filename = f'log-{modmail_user.name}-{modmail_reason}.txt'
+        log_filename = f'log-{modmail_user.name}-{modmail_reason}-{str(ctx.message.created_at)[:10]}.txt'
 
-        with open(log_filename, 'w') as logs_txt_file:
-            logs_txt_file.write(my_row[3])
-            log_name_with_path = logs_txt_file.name
-        logs_channel = self.bot.get_channel(logs_channel_id)
+        await ctx.send(embed = self.simple_embed('Creating logs and closing modmail...'))
+
+        with open(log_filename, 'w') as log_txt_file:
+
+            async for message in modmail_channel.history(limit=None, oldest_first=True):
+
+                if message.is_system():
+                    continue
+
+                embeds_if_any = ''
+                if message.embeds:
+                    embed_desc_list = [textwrap.fill(embed.description) for embed in message.embeds]
+                    embeds_if_any = '\nEmbed description(s):\n{}\n'.format(',\n\n'.join(embed_desc_list))
+
+                attachments_if_any = ''
+                if message.attachments:
+                    attachment_url_list = [attachment.url for attachment in message.attachments]
+                    attachments_if_any = '\nAttachment URL(s):\n{}\n'.format(',\n'.join(attachment_url_list))
+
+                contentstr = f'Content:\n{textwrap.fill(message.content)}\n' if message.content else '[no message content]\n'
+
+                log_txt_file.write(
+                    f'{message.author.name}#{message.author.discriminator} ({message.author.id}) at {message.created_at} UTC\n\n{contentstr}{embeds_if_any}{attachments_if_any}\n\n')
+
+            log_filename_with_path = log_txt_file.name
 
         # send to moderators' logs:
-        dpy_compatible_log = discord.File(log_name_with_path)
+        dpy_compatible_log = discord.File(log_filename_with_path)
         mod_modmail_closed_embed = discord.Embed(description=f'Modmail with {modmail_user.mention} closed by {ctx.author.name}. Modmail reason was "{modmail_reason}".').set_author(
             name=self.embed_details['author name'], icon_url=self.embed_details['author icon']).set_footer(text='Use ;modmail open <userid> [reason] to open another modmail.')
 
@@ -327,13 +338,13 @@ class Modmail(commands.Cog):
         await self.bot.conn.commit()
 
         # send to the user:
-        dpy_compatible_log = discord.File(log_name_with_path)
-        os.remove(log_name_with_path)
+        dpy_compatible_log = discord.File(log_filename_with_path)
+        os.remove(log_filename_with_path)
 
         user_modmail_closed_embed = discord.Embed(description=f'Modmail closed by {ctx.author.name}. At time of closure, the modmail\'s reason was "{modmail_reason}".').set_author(
             name=self.embed_details['author name'], icon_url=self.embed_details['author icon']).set_footer(text='Send another message to open a new modmail.')
         await modmail_user.send(embed=user_modmail_closed_embed)
-        await modmail_user.send(content='Logs:', file=dpy_compatible_log)
+        await modmail_user.send(content='Logs (from moderators\' perspective):', file=dpy_compatible_log)
 
         await modmail_channel.delete()
 
@@ -382,10 +393,9 @@ class Modmail(commands.Cog):
             c = await self.bot.conn.execute('SELECT * FROM activemodmails WHERE modmailchnlid=?', (ctx.channel.id,))
 
         my_row = await c.fetchone()
-        to_logs_reason_change = my_row[3] + f'{update_notice_str}\n\n'
 
         c = await self.bot.conn.cursor()
-        await c.execute('UPDATE activemodmails SET reason=?, msglog=? WHERE modmailchnlid=? ', (reason, to_logs_reason_change, my_row[1]))
+        await c.execute('UPDATE activemodmails SET reason=? WHERE modmailchnlid=? ', (reason, my_row[1]))
         await self.bot.conn.commit()
         modmail_channel = self.bot.get_channel(my_row[1])
         modmail_user = self.bot.get_user(my_row[0])

@@ -36,7 +36,7 @@ class Modmail_auxiliaries(commands.Cog):
         showtable_filename = f'{ctx.message.created_at}-contents-of-activemodmails.txt'
 
         with open(showtable_filename, 'w') as showtable_txt_file:
-            showtable_txt_file.write('userid, modmailchnlid, reason, msglog\n\n')
+            showtable_txt_file.write('userid, modmailchnlid, reason\n\n')
             for myrow in full_activemodmails_table:
                 showtable_txt_file.write(f'{myrow}\n')
             showtable_filename_with_path = showtable_txt_file.name
