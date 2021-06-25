@@ -2,6 +2,5 @@ todo:
 
 figure out how to host???
 squash lingering syntax errors?
-don't send log to user (because it might have mod-only info somehow??), do that as separate commit from revamping log
-refactor deeply nested conditional code using return/break?
+in modmail open cmd, check if currently in modmail
 notes/resources:

@@ -60,59 +60,57 @@ class Modmail(commands.Cog):
             opening_modmail_message = await modmail_user.send(embed=self.simple_embed('Opening a new modmail...'))
 
         c = await self.bot.conn.execute('SELECT * FROM activemodmails WHERE userid=?', (modmail_user.id,))
-        if await c.fetchone() is None:
 
-            my_guild = self.bot.get_guild(server_id)
-            modmail_private_cat = my_guild.get_channel(modmail_category_id)
-            modmail_channel = await modmail_private_cat.create_text_channel(f'{modmail_user.name}{modmail_user.discriminator}')
-
-            new_row = (modmail_user.id, modmail_channel.id, modmailreason)
-
-            c = await self.bot.conn.cursor()
-            await c.execute('INSERT INTO activemodmails VALUES (?,?,?)', new_row)
-            await self.bot.conn.commit()
-
-            if from_user:
-                mod_modmail_opened_embed = discord.Embed(description=f'New modmail from {messagectx.author.mention} (see their message below). Send a message in this channel to respond.\n\nA ✅ on your message means it\'s been successfully relayed, and a ✂️ means it has been cut to stay within the character limit.').set_author(
-                    name=self.embed_details['author name'], icon_url=self.embed_details['author icon']).set_footer(text=self.embed_details['footer'])
-
-                user_modmail_opened_embed = discord.Embed(description=f'Opened a new modmail and sent your message.\n\nAll messages sent will be relayed back and forth between you and the moderators. A ✅ on your message means it\'s been successfully relayed, and a ✂️ means it has been cut to stay within the character limit.').set_author(
-                    name=self.embed_details['author name'], icon_url=self.embed_details['author icon']).set_footer(text=self.embed_details['footer'])
-
-                relay_first_message_to = modmail_channel
-
-            else:
-                mod_modmail_opened_embed = discord.Embed(description=f'Modmail opened by moderator {messagectx.author.mention} to talk to user {modmail_user.mention}. The reason for this modmail is "{modmailreason}".\n\nA ✅ on your message means it\'s been successfully relayed.\n\n**{messagectx.author.name}\'s initial message**:\n\n{message_content[:1639]}').set_author(
-                    name=self.embed_details['author name'], icon_url=self.embed_details['author icon']).set_footer(text=self.embed_details['footer'])
-
-                user_modmail_opened_embed = discord.Embed(description=f'A moderator on KotLC Chats opened a new modmail to speak with you (see their message below). Send a message in this DM to respond. The reason for this modmail is "{modmailreason}". \n\nAll messages sent will be relayed back and forth between you and the moderators. A ✅ on your message means it\'s been successfully relayed, and a ✂️ means it has been cut to stay within the character limit.').set_author(
-                    name=self.embed_details['author name'], icon_url=self.embed_details['author icon']).set_footer(text=self.embed_details['footer'])
-
-                relay_first_message_to = modmail_user
-
-            initial_user_msg = await modmail_user.send(embed=user_modmail_opened_embed)
-            initial_mod_msg = await modmail_channel.send(embed=mod_modmail_opened_embed)
-
-            if messagectx.attachments != []:
-                discordable_files = [(await x.to_file()) for x in messagectx.attachments]
-                await relay_first_message_to.send(f'**{messagectx.author.name}**: {message_content}', files=discordable_files)
-            else:
-                await relay_first_message_to.send(f'**{messagectx.author.name}**: {message_content}')
-
-            await initial_user_msg.pin()
-            await initial_mod_msg.pin()
-
-        else:
+        if await c.fetchone() is not None:  # if a modmail is already attached to this user
             avoid_duplicate_modmail_embed = self.simple_embed(
                 'Error: you tried to open more than one modmail at once. The bot will handle this– no action is required on your part, and the rest of the modmail flow will continue as normal. However, the following message was probably not relayed, so you may want to send it again:')
 
-            if from_user:
+            if from_user:  # separate rather than doing a destination if statement because modmail channel not created yet
                 await messagectx.author.send(embed=avoid_duplicate_modmail_embed)
                 await messagectx.author.send(message_content)
             else:
                 await opening_modmail_message.delete()
                 await messagectx.channel.send(embed=avoid_duplicate_modmail_embed)
                 await messagectx.channel.send(message_content)
+            return
+
+        my_guild = self.bot.get_guild(server_id)
+        modmail_private_cat = my_guild.get_channel(modmail_category_id)
+        modmail_channel = await modmail_private_cat.create_text_channel(f'{modmail_user.name}{modmail_user.discriminator}')
+        new_row = (modmail_user.id, modmail_channel.id, modmailreason)
+        c = await self.bot.conn.cursor()
+        await c.execute('INSERT INTO activemodmails VALUES (?,?,?)', new_row)
+        await self.bot.conn.commit()
+
+        if from_user:
+            mod_modmail_opened_embed = discord.Embed(description=f'New modmail from {messagectx.author.mention} (see their message below). Send a message in this channel to respond.\n\nA ✅ on your message means it\'s been successfully relayed, and a ✂️ means it has been cut to stay within the character limit.').set_author(
+                name=self.embed_details['author name'], icon_url=self.embed_details['author icon']).set_footer(text=self.embed_details['footer'])
+
+            user_modmail_opened_embed = discord.Embed(description=f'Opened a new modmail and sent your message.\n\nAll messages sent will be relayed back and forth between you and the moderators. A ✅ on your message means it\'s been successfully relayed, and a ✂️ means it has been cut to stay within the character limit.').set_author(
+                name=self.embed_details['author name'], icon_url=self.embed_details['author icon']).set_footer(text=self.embed_details['footer'])
+
+            relay_first_message_to = modmail_channel
+
+        else:
+            mod_modmail_opened_embed = discord.Embed(description=f'Modmail opened by moderator {messagectx.author.mention} to talk to user {modmail_user.mention}. The reason for this modmail is "{modmailreason}".\n\nA ✅ on your message means it\'s been successfully relayed.\n\n**{messagectx.author.name}\'s initial message**:\n\n{message_content[:1639]}').set_author(
+                name=self.embed_details['author name'], icon_url=self.embed_details['author icon']).set_footer(text=self.embed_details['footer'])
+
+            user_modmail_opened_embed = discord.Embed(description=f'A moderator on KotLC Chats opened a new modmail to speak with you (see their message below). Send a message in this DM to respond. The reason for this modmail is "{modmailreason}". \n\nAll messages sent will be relayed back and forth between you and the moderators. A ✅ on your message means it\'s been successfully relayed, and a ✂️ means it has been cut to stay within the character limit.').set_author(
+                name=self.embed_details['author name'], icon_url=self.embed_details['author icon']).set_footer(text=self.embed_details['footer'])
+
+            relay_first_message_to = modmail_user
+
+        initial_user_msg = await modmail_user.send(embed=user_modmail_opened_embed)
+        initial_mod_msg = await modmail_channel.send(embed=mod_modmail_opened_embed)
+
+        if messagectx.attachments != []:
+            discordable_files = [(await x.to_file()) for x in messagectx.attachments]
+            await relay_first_message_to.send(f'**{messagectx.author.name}**: {message_content}', files=discordable_files)
+        else:
+            await relay_first_message_to.send(f'**{messagectx.author.name}**: {message_content}')
+
+        await initial_user_msg.pin()
+        await initial_mod_msg.pin()
 
     async def relay_message(self, messagectx, row, from_user: bool):
 
@@ -142,74 +140,77 @@ class Modmail(commands.Cog):
     @commands.Cog.listener()
     async def on_message(self, message):
         try:
-            # if message not sent by the bot and doesn't start with a command and user not blacklisted
-            if message.author.id != self.bot.user.id and all([not message.content.startswith(x) for x in self.dont_trigger_onmessage]) and message.author.id not in [each_row[1] for each_row in self.blacklisted_users]:
+            #  ignore if message sent by the bot or starts with a command or user blacklisted
+            if message.author.id == self.bot.user.id or any([message.content.startswith(x) for x in self.dont_trigger_onmessage]) or message.author.id in [each_row[1] for each_row in self.blacklisted_users]:
+                return
 
-                msg_channel = message.channel
-                msg_channelid = message.channel.id
-                msg_guild = message.guild
-                msg_authorid = message.author.id
+            msg_channel = message.channel
+            msg_channelid = message.channel.id
+            msg_guild = message.guild
+            msg_authorid = message.author.id
+            my_guild = self.bot.get_guild(server_id)
 
-                my_guild = self.bot.get_guild(server_id)
+            if msg_guild is None:  # if in DM
+
                 member_of_my_guild = my_guild.get_member(msg_authorid)
+                if not member_of_my_guild:
+                    return
 
-                if msg_guild is None and member_of_my_guild is not None:  # if in DM and user in the guild
+                c = await self.bot.conn.execute('SELECT * FROM activemodmails WHERE userid=?', (msg_authorid,))
+                my_row = await c.fetchone()
+                await self.bot.conn.commit()
 
-                    c = await self.bot.conn.execute('SELECT * FROM activemodmails WHERE userid=?', (msg_authorid,))
-                    my_row = await c.fetchone()
-                    await self.bot.conn.commit()
+                if my_row is not None:  # if message in DM and part of an active modmail, relay message
+                    try:
+                        await self.relay_message(message, my_row, True)
+                    except discord.Forbidden as error:
+                        await msg_channel.send(embed=self.simple_embed(f'Error: bot lacks permissions to relay your message. Please contact a moderator directly. ({error})'))
 
-                    if my_row is not None:  # if message in DM and part of an active modmail, relay message
-                        try:
-                            await self.relay_message(message, my_row, True)
-                        except discord.Forbidden:
-                            await msg_channel.send(embed=self.simple_embed('Error: bot lacks permissions to relay your message. Please contact a moderator directly.'))
+                else:  # if message in DM and not part of an active modmail, create modmail
 
-                    else:  # if message in DM and not part of an active modmail, create modmail
+                    if len(message.content) >= 1910:
+                        await message.add_reaction('✂')
+                    msg_content = message.content[:1909]
 
-                        if len(message.content) >= 1910:
-                            await message.add_reaction('✂')
-                        msg_content = message.content[:1909]
+                    initiate_modmail_embed = discord.Embed(description=f'Initiating a new modmail. React with 👍 to send this message to KotLC Chats moderators. To cancel, react with 🚫.\n\n**Your message**:\n\n {msg_content}').set_author(
+                        name=self.embed_details['author name'], icon_url=self.embed_details['author icon'])
+                    bot_msg = await msg_channel.send(embed=initiate_modmail_embed)
 
-                        initiate_modmail_embed = discord.Embed(description=f'Initiating a new modmail. React with 👍 to send this message to KotLC Chats moderators. To cancel, react with 🚫.\n\n**Your message**:\n\n {msg_content}').set_author(
-                            name=self.embed_details['author name'], icon_url=self.embed_details['author icon'])
-                        bot_msg = await msg_channel.send(embed=initiate_modmail_embed)
+                    await bot_msg.add_reaction('👍')
+                    await bot_msg.add_reaction('🚫')
 
-                        await bot_msg.add_reaction('👍')
-                        await bot_msg.add_reaction('🚫')
+                    def check_reaction(reaction, user):
+                        confirm_send = '👍'
+                        cancel_send = '🚫'
+                        return user == message.author and reaction.message.id == bot_msg.id and (str(reaction.emoji) == confirm_send or str(reaction.emoji) == cancel_send)
 
-                        def check_reaction(reaction, user):
-                            confirm_send = '👍'
-                            cancel_send = '🚫'
-                            return user == message.author and reaction.message.id == bot_msg.id and (str(reaction.emoji) == confirm_send or str(reaction.emoji) == cancel_send)
+                    try:  # ask for confirmation, create new modmail, and relay message
+                        reaction, user = await self.bot.wait_for('reaction_add', timeout=30.0, check=check_reaction)
+                        if str(reaction) == '👍':  # if user confirms
 
-                        try:  # ask for confirmation, create new modmail, and relay message
-                            reaction, user = await self.bot.wait_for('reaction_add', timeout=30.0, check=check_reaction)
-                            if str(reaction) == '👍':  # if user confirms
+                            await msg_channel.send(embed=self.simple_embed('Okay, relaying your message to the moderators...'))
 
-                                await msg_channel.send(embed=self.simple_embed('Okay, relaying your message to the moderators...'))
+                            # open new modmail
+                            await self.open_modmail_func(message, msg_authorid, True)
 
-                                # open new modmail
-                                await self.open_modmail_func(message, msg_authorid, True)
+                        elif str(reaction) == '🚫':  # if user cancels
 
-                            elif str(reaction) == '🚫':  # if user cancels
+                            await msg_channel.send(embed=self.simple_embed('Cancelled.'))
 
-                                await msg_channel.send(embed=self.simple_embed('Cancelled.'))
+                    except asyncio.TimeoutError:  # if 30 seconds pass without user confirming or canceling
+                        await msg_channel.send(embed=self.simple_embed('Timed out, process cancelled. To try again, send a new message.'))
 
-                        except asyncio.TimeoutError:  # if 30 seconds pass without user confirming or canceling
-                            await msg_channel.send(embed=self.simple_embed('Timed out, process cancelled. To try again, send a new message.'))
+            else:  # if not in DM
 
-                else:  # if not in DM
+                c = await self.bot.conn.execute('SELECT * FROM activemodmails WHERE modmailchnlid=?', (msg_channelid, ))
+                my_row = await c.fetchone()
 
-                    c = await self.bot.conn.execute('SELECT * FROM activemodmails WHERE modmailchnlid=?', (msg_channelid, ))
-                    my_row = await c.fetchone()
-                    await self.bot.conn.commit()
-
-                    if my_row is not None:  # if in active modmail channel
-                        try:
-                            await self.relay_message(message, my_row, False)
-                        except discord.Forbidden:
-                            await msg_channel.send(embed=self.simple_embed('Error: couldn\'t DM that user.'))
+                # if in active modmail channel (this handles whether the message is in the guild or not)
+                if my_row is not None:
+                    try:
+                        await self.relay_message(message, my_row, False)
+                    except discord.Forbidden as error:
+                        await msg_channel.send(embed=self.simple_embed(f'Error: couldn\'t DM that user. ({error})'))
 
         except Exception as error:
             await message.channel.send(embed=self.simple_embed(f'Something went wrong: {error}'))
@@ -239,20 +240,22 @@ class Modmail(commands.Cog):
         if something goes wrong, contact LonelyPenguin#9931.
         Maximum length of reason is 72 characters."""
 
-        if ctx.guild == self.bot.get_guild(server_id):
-
-            initialize_question_embed = discord.Embed(description=f'What message should I DM to {open_modmail_with_user.mention} to initiate this modmail?').set_author(
-                name=self.embed_details['author name'], icon_url=self.embed_details['author icon']).set_footer(text='Prompt will time out after 60 seconds; to cancel, wait out this timer.')
-            await ctx.send(embed=initialize_question_embed)
-
-            def check_user(m):
-                return m.author == ctx.author and m.channel == ctx.channel
-            msg = await self.bot.wait_for('message', timeout=60.0, check=check_user)
-
-            await self.open_modmail_func(msg, open_modmail_with_user.id, False, modmailreason=new_modmail_reason[:71])
-            await msg.add_reaction('👍')
-        else:
+        if ctx.guild != self.bot.get_guild(server_id):
             await ctx.send(embed=self.simple_embed('You must be in the server to use this command.'))
+            return
+
+        initialize_question_embed = discord.Embed(description=f'What message should I DM to {open_modmail_with_user.mention} to initiate this modmail?').set_author(
+            name=self.embed_details['author name'], icon_url=self.embed_details['author icon']).set_footer(text='Prompt will time out after 60 seconds; to cancel, wait out this timer.')
+
+        await ctx.send(embed=initialize_question_embed)
+
+        def check_user(m):
+            return m.author == ctx.author and m.channel == ctx.channel
+
+        msg = await self.bot.wait_for('message', timeout=60.0, check=check_user)
+
+        await self.open_modmail_func(msg, open_modmail_with_user.id, False, modmailreason=new_modmail_reason[:71])
+        await msg.add_reaction('👍')
 
     @mod_open_modmail.error
     async def mod_open_modmail_error(self, ctx, error):
@@ -301,7 +304,7 @@ class Modmail(commands.Cog):
         modmail_reason = my_row[2]
         log_filename = f'log-{modmail_user.name}-{modmail_reason}-{str(ctx.message.created_at)[:10]}.txt'
 
-        await ctx.send(embed = self.simple_embed('Creating logs and closing modmail...'))
+        await ctx.send(embed=self.simple_embed('Creating logs and closing modmail...'))
 
         with open(log_filename, 'w') as log_txt_file:
 
@@ -312,13 +315,17 @@ class Modmail(commands.Cog):
 
                 embeds_if_any = ''
                 if message.embeds:
-                    embed_desc_list = [textwrap.fill(embed.description) for embed in message.embeds]
-                    embeds_if_any = '\nEmbed description(s):\n{}\n'.format(',\n\n'.join(embed_desc_list))
+                    embed_desc_list = [textwrap.fill(
+                        embed.description) for embed in message.embeds]
+                    embeds_if_any = '\nEmbed description(s):\n{}\n'.format(
+                        ',\n\n'.join(embed_desc_list))
 
                 attachments_if_any = ''
                 if message.attachments:
-                    attachment_url_list = [attachment.url for attachment in message.attachments]
-                    attachments_if_any = '\nAttachment URL(s):\n{}\n'.format(',\n'.join(attachment_url_list))
+                    attachment_url_list = [
+                        attachment.url for attachment in message.attachments]
+                    attachments_if_any = '\nAttachment URL(s):\n{}\n'.format(
+                        ',\n'.join(attachment_url_list))
 
                 contentstr = f'Content:\n{textwrap.fill(message.content)}\n' if message.content else '[no message content]\n'
 
@@ -360,7 +367,7 @@ class Modmail(commands.Cog):
         elif isinstance(error, discord.Forbidden):
             await ctx.send(embed=self.simple_embed(f'Note: Modmail closed, but couldn\'t DM the user to notify them. ({error})'))
         elif isinstance(error, commands.CommandOnCooldown):
-            await ctx.send(embed=self.simple_embed(f'On cooldown: You can\'t close this modmail for another {round(error.retry_after)} seconds. This is probably because you have very recently closed a different modmail. You can ask a moderator to close this modmail for you if that\'s convenient.'))
+            await ctx.send(embed=self.simple_embed(f'On cooldown: You can\'t use this command for another {round(error.retry_after)} seconds. This is probably because you have very recently closed a different modmail. You can ask a moderator to close this modmail for you if that\'s convenient.'))
         elif isinstance(error, AttributeError):
             await ctx.send(embed=self.simple_embed(f'Error: Modmail channel was probably already deleted. Modmail has probably still been closed, though. ({error})'))
         else:
@@ -452,25 +459,26 @@ class Modmail(commands.Cog):
 
         c = await self.bot.conn.cursor()
         await c.execute('SELECT * FROM blacklist WHERE userid=?', (user_to_blacklist.id,))
-        if await c.fetchone() is None:
-            await c.execute('INSERT INTO blacklist VALUES (?,?,?)', (ctx.message.created_at, user_to_blacklist.id, user_to_blacklist.name))
-            await self.bot.conn.commit()
 
-            c = await self.bot.conn.execute('SELECT * FROM blacklist')
-            self.blacklisted_users = await c.fetchall()
-
-            mod_confirmed_blacklist_embed = discord.Embed(description=f'Blacklisted {user_to_blacklist.mention} from interacting with the modmail system.').set_author(
-                name=self.embed_details['author name'], icon_url=self.embed_details['author icon'])
-            user_inform_blacklist_embed = discord.Embed(description='You have been blacklisted from the modmail system– this bot will no longer respond to any of your messages. If you believe this was in error, please DM a moderator directly.').set_author(
-                name=self.embed_details['author name'], icon_url=self.embed_details['author icon'])
-
-            await ctx.send(embed=mod_confirmed_blacklist_embed)
-            await user_to_blacklist.send(embed=user_inform_blacklist_embed)
-
-        else:
+        if await c.fetchone() is not None:
             await ctx.send(embed=self.simple_embed('User is already blacklisted.'))
+            return
 
-    @blacklist.command(name='show')
+        await c.execute('INSERT INTO blacklist VALUES (?,?,?)', (ctx.message.created_at, user_to_blacklist.id, user_to_blacklist.name))
+        await self.bot.conn.commit()
+
+        c = await self.bot.conn.execute('SELECT * FROM blacklist')
+        self.blacklisted_users = await c.fetchall()
+
+        mod_confirmed_blacklist_embed = discord.Embed(description=f'Blacklisted {user_to_blacklist.mention} from interacting with the modmail system.').set_author(
+            name=self.embed_details['author name'], icon_url=self.embed_details['author icon'])
+        user_inform_blacklist_embed = discord.Embed(description='You have been blacklisted from the modmail system– this bot will no longer respond to any of your messages. If you believe this was in error, please DM a moderator directly.').set_author(
+            name=self.embed_details['author name'], icon_url=self.embed_details['author icon'])
+
+        await ctx.send(embed=mod_confirmed_blacklist_embed)
+        await user_to_blacklist.send(embed=user_inform_blacklist_embed)
+
+    @blacklist.command(name='show', aliases=['view'])
     @check_if_moderator()
     async def blacklist_show(self, ctx):
         """Shows the current state of the blacklist (who's on it and when they were blacklisted).
@@ -504,23 +512,23 @@ class Modmail(commands.Cog):
         c = await self.bot.conn.cursor()
         await c.execute('SELECT * FROM blacklist WHERE userid=?', (user_to_unblacklist.id,))
 
-        if await c.fetchone() is not None:
-            await c.execute('DELETE FROM blacklist WHERE userid=?', (user_to_unblacklist.id,))
-            await self.bot.conn.commit()
-
-            c = await self.bot.conn.execute('SELECT * FROM blacklist')
-            self.blacklisted_users = await c.fetchall()
-
-            mod_confirmed_unblacklist_embed = discord.Embed(description=f'Removed {user_to_unblacklist.mention} from the blacklist. They can once again interact with the modmail system.').set_author(
-                name=self.embed_details['author name'], icon_url=self. embed_details['author icon'])
-            user_inform_unblacklist_embed = discord.Embed(description='You have been removed from the modmail blacklist– you can once again use the modmail system.').set_author(
-                name=self.embed_details['author name'], icon_url=self.embed_details['author icon'])
-
-            await ctx.send(embed=mod_confirmed_unblacklist_embed)
-            await user_to_unblacklist.send(embed=user_inform_unblacklist_embed)
-
-        else:
+        if await c.fetchone() is None:
             await ctx.send(embed=self.simple_embed('User is not blacklisted.'))
+            return
+
+        await c.execute('DELETE FROM blacklist WHERE userid=?', (user_to_unblacklist.id,))
+        await self.bot.conn.commit()
+
+        c = await self.bot.conn.execute('SELECT * FROM blacklist')
+        self.blacklisted_users = await c.fetchall()
+
+        mod_confirmed_unblacklist_embed = discord.Embed(description=f'Removed {user_to_unblacklist.mention} from the blacklist. They can once again interact with the modmail system.').set_author(
+            name=self.embed_details['author name'], icon_url=self. embed_details['author icon'])
+        user_inform_unblacklist_embed = discord.Embed(description='You have been removed from the modmail blacklist– you can once again use the modmail system.').set_author(
+            name=self.embed_details['author name'], icon_url=self.embed_details['author icon'])
+
+        await ctx.send(embed=mod_confirmed_unblacklist_embed)
+        await user_to_unblacklist.send(embed=user_inform_unblacklist_embed)
 
     @blacklist_add.error
     async def blacklist_add_error(self, ctx, error):
