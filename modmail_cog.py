@@ -335,7 +335,7 @@ class Modmail(commands.Cog):
                 contentstr = f'Content:\n{textwrap.fill(message.content)}\n' if message.content else '[no message content]\n'
 
                 log_txt_file.write(
-                    f'{message.author.name}#{message.author.discriminator} ({message.author.id}) at {message.created_at} UTC\n\n{contentstr}{embeds_if_any}{attachments_if_any}\n\n')
+                    f'{message.author.name}#{message.author.discriminator} ({message.author.id}) at {str(message.created_at)[:19]} UTC\n\n{contentstr}{embeds_if_any}{attachments_if_any}\n\n')
 
             log_filename_with_path = log_txt_file.name
 
@@ -469,7 +469,7 @@ class Modmail(commands.Cog):
             await ctx.send(embed=self.simple_embed('User is already blacklisted.'))
             return
 
-        await c.execute('INSERT INTO blacklist VALUES (?,?,?)', (ctx.message.created_at, user_to_blacklist.id, user_to_blacklist.name))
+        await c.execute('INSERT INTO blacklist VALUES (?,?,?)', (str(ctx.message.created_at)[:19], user_to_blacklist.id, user_to_blacklist.name))
         await self.bot.conn.commit()
 
         c = await self.bot.conn.execute('SELECT * FROM blacklist')
@@ -493,7 +493,7 @@ class Modmail(commands.Cog):
         full_blacklist_table = await c.fetchall()
         await self.bot.conn.commit()
 
-        showtable_filename = f'{ctx.message.created_at}-currently-blacklisted-users.txt'
+        showtable_filename = f'{str(ctx.message.created_at)[:19]}-currently-blacklisted-users.txt'
 
         with open(showtable_filename, 'w') as showtable_txt_file:
             showtable_txt_file.write('timestamp (UTC), userid, username\n\n')
