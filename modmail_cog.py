@@ -244,6 +244,11 @@ class Modmail(commands.Cog):
             await ctx.send(embed=self.simple_embed('You must be in the server to use this command.'))
             return
 
+        c = await self.bot.conn.execute('SELECT * FROM activemodmails WHERE modmailchnlid=?', (ctx.channel.id,))
+        if await c.fetchone() is not None:
+            await ctx.send(embed = self.simple_embed('Error: you are currently in a modmail. Run this command in a different channel (for privacy).'))
+            return
+
         initialize_question_embed = discord.Embed(description=f'What message should I DM to {open_modmail_with_user.mention} to initiate this modmail?').set_author(
             name=self.embed_details['author name'], icon_url=self.embed_details['author icon']).set_footer(text='Prompt will time out after 60 seconds; to cancel, wait out this timer.')
 
