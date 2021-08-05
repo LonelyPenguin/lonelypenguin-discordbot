@@ -4,7 +4,7 @@ import aiosqlite
 import asyncio
 import os
 
-class Modmail_auxiliaries(commands.Cog):
+class ModmailAuxiliaries(commands.Cog):
     "Developer commands providing common shortcuts to make the testing and development of the modmail setup easier. Currently, these commands will only respond to LonelyPenguin."
 
     def __init__(self, bot: commands.Bot):
@@ -96,4 +96,4 @@ class Modmail_auxiliaries(commands.Cog):
 
 
 def setup(bot: commands.Bot):
-    bot.add_cog(Modmail_auxiliaries(bot))
+    bot.add_cog(ModmailAuxiliaries(bot))
