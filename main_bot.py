@@ -16,7 +16,7 @@ logger.addHandler(handler)
 
 async def startup():
 
-    intents = discord.Intents.all()
+    intents = discord.Intents.default()
 
     myactivity = discord.Activity(
         name='DMs from you', type=discord.ActivityType.listening)
