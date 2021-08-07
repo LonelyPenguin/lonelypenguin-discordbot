@@ -1,13 +1,15 @@
 # region imports
 import discord
-from discord.ext import commands
 import aiosqlite
 import asyncio
-from config.server_vars import logs_channel_id, server_id, modmail_category_id, moderator_ids
 import os
 import traceback
 import sys
 import textwrap
+
+from discord.ext import commands
+from config.server_vars import logs_channel_id, server_id, modmail_category_id, moderator_ids
+from views import Confirm
 # endregion
 
 
@@ -172,33 +174,28 @@ class Modmail(commands.Cog):
                         await message.add_reaction('✂')
                     msg_content = message.content[:1909]
 
-                    initiate_modmail_embed = discord.Embed(description=f'Initiating a new modmail. React with 👍 to send this message to KotLC Chats moderators. To cancel, react with 🚫.\n\n**Your message**:\n\n {msg_content}').set_author(
+                    initiate_modmail_embed = discord.Embed(description=f'Please confirm that you would like to open a modmail and relay your message to KotLC Chats moderators.\n\n**Your message**:\n\n {msg_content}').set_author(
                         name=self.embed_details['author name'], icon_url=self.embed_details['author icon'])
-                    bot_msg = await msg_channel.send(embed=initiate_modmail_embed)
+                    
+                    confirm_view = Confirm(message.author)
+                    bot_msg = await msg_channel.send(embed=initiate_modmail_embed, view=confirm_view)
+                    
+                    timed_out = await confirm_view.wait()
 
-                    await bot_msg.add_reaction('👍')
-                    await bot_msg.add_reaction('🚫')
-
-                    def check_reaction(reaction, user):
-                        confirm_send = '👍'
-                        cancel_send = '🚫'
-                        return user == message.author and reaction.message.id == bot_msg.id and (str(reaction.emoji) == confirm_send or str(reaction.emoji) == cancel_send)
-
-                    try:  # ask for confirmation, create new modmail, and relay message
-                        reaction, user = await self.bot.wait_for('reaction_add', timeout=30.0, check=check_reaction)
-                        if str(reaction) == '👍':  # if user confirms
-
-                            await msg_channel.send(embed=self.simple_embed('Okay, relaying your message to the moderators...'))
-
-                            # open new modmail
-                            await self.open_modmail_func(message, msg_authorid, True)
-
-                        elif str(reaction) == '🚫':  # if user cancels
-
-                            await msg_channel.send(embed=self.simple_embed('Cancelled.'))
-
-                    except asyncio.TimeoutError:  # if 30 seconds pass without user confirming or canceling
+                    if timed_out:
                         await msg_channel.send(embed=self.simple_embed('Timed out, process cancelled. To try again, send a new message.'))
+                        return
+
+                    if confirm_view.value is True:  # if user confirms
+
+                        await msg_channel.send(embed=self.simple_embed('Okay, relaying your message to the moderators...'))
+
+                        # open new modmail
+                        await self.open_modmail_func(message, msg_authorid, True)
+
+                    else:  # if user cancels
+
+                        await msg_channel.send(embed=self.simple_embed('Cancelled.'))
 
             else:  # if not in DM
 
