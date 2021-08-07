@@ -17,7 +17,7 @@ class Modmail(commands.Cog):
     Use ;modmail reason and ;modmail close in an open modmail (channel or DM) to change the modmail reason or close it.
     Once closed, users and moderators will be sent a log of the conversation.
     Attachements function as expected. 
-    Moderators can use ;modmail open <userid> [reason] to open a modmail with a specific user.
+    Moderators can use ;modmail open <user> [reason] to open a modmail with a specific user.
     A \'✅\' reaction on a message means it\'s been successfully relayed, and messages without this reaction have not been relayed.
     A ✂️ means the message has been cut to stay within the character limit.
     If system does not function as expected, please contact LonelyPenguin#9931."""
@@ -269,7 +269,7 @@ class Modmail(commands.Cog):
         if isinstance(error, discord.Forbidden) or isinstance(error, AttributeError):
             await ctx.send(embed=self.simple_embed(f'Error: bot probably can\'t DM that user. ({error})'))
         elif isinstance(error, asyncio.TimeoutError):
-            await ctx.send(embed=self.simple_embed(f'Timed out. Use the command ;modmail open <userid> [reason] to try again. ({error})'))
+            await ctx.send(embed=self.simple_embed(f'Timed out. Use the command ;modmail open <user> [reason] to try again. ({error})'))
         elif isinstance(error, commands.MissingRequiredArgument):
             await ctx.send(embed=self.simple_embed(f'Error: Missing a required argument. Proper syntax: `;modmail open <user> [reason]`. ({error})'))
         elif isinstance(error, discord.HTTPException):
@@ -342,7 +342,7 @@ class Modmail(commands.Cog):
         # send to moderators' logs:
         dpy_compatible_log = discord.File(log_filename_with_path)
         mod_modmail_closed_embed = discord.Embed(description=f'Modmail with {modmail_user.mention} closed by {ctx.author.name}. Modmail reason was "{modmail_reason}".').set_author(
-            name=self.embed_details['author name'], icon_url=self.embed_details['author icon']).set_footer(text='Use ;modmail open <userid> [reason] to open another modmail.')
+            name=self.embed_details['author name'], icon_url=self.embed_details['author icon']).set_footer(text='Use ;modmail open <user> [reason] to open another modmail.')
 
         await logs_channel.send(embed=mod_modmail_closed_embed)
         await logs_channel.send(content='Logs:', file=dpy_compatible_log)
