@@ -271,7 +271,7 @@ class Modmail(commands.Cog):
         elif isinstance(error, asyncio.TimeoutError):
             await ctx.send(embed=self.simple_embed(f'Timed out. Use the command ;modmail open <userid> [reason] to try again. ({error})'))
         elif isinstance(error, commands.MissingRequiredArgument):
-            await ctx.send(embed=self.simple_embed(f'Error: Missing a required argument. Proper syntax: `;modmail reason <reason>`. ({error})'))
+            await ctx.send(embed=self.simple_embed(f'Error: Missing a required argument. Proper syntax: `;modmail open <user> [reason]`. ({error})'))
         elif isinstance(error, discord.HTTPException):
             if error.code == 50035:
                 await ctx.send(embed=self.simple_embed(f'Error: Your message or reason was too long to send. If a modmail channel is open, please use it as-is and send your message again (but shorter). Otherwise, run this command again with a shorter message. ({error})'))
@@ -280,10 +280,10 @@ class Modmail(commands.Cog):
         else:
             # All other errors not returned come here. And we can just print the default Traceback.
             await ctx.send(embed=self.simple_embed(f'Something went wrong: {error}'))
-            print('Ignoring exception in command {}:'.format(
-                ctx.command), file=sys.stderr)
-            traceback.print_exception(
-                type(error), error, error.__traceback__, file=sys.stderr)
+        print('Ignoring exception in command {}:'.format(
+            ctx.command), file=sys.stderr)
+        traceback.print_exception(
+            type(error), error, error.__traceback__, file=sys.stderr)
 
     @modmail.command(name='close', aliases=['shutdown', 'finish', 'end'])
     @commands.cooldown(1, 300.0, commands.cooldowns.BucketType.channel)
@@ -429,7 +429,7 @@ class Modmail(commands.Cog):
             if error.code == 30003:
                 await ctx.send(embed=self.simple_embed(f'Note: Pinning the reason-change notice failed for either the user or for moderators. The reason was still changed. Unpin some older messages if you want newer reasons to be pinned. ({error})'))
         elif isinstance(error, commands.MissingRequiredArgument):
-            await ctx.send(embed=self.simple_embed(f'Error: Missing a required argument. Proper syntax: `;modmail reason [reason]`. ({error})'))
+            await ctx.send(embed=self.simple_embed(f'Error: Missing a required argument. Proper syntax: `;modmail reason <reason>`. ({error})'))
         elif isinstance(error, commands.CommandOnCooldown):
             await ctx.send(embed=self.simple_embed(f'On cooldown: You can\'t change this modmail\'s reason again for another {round(error.retry_after)} seconds.'))
         elif isinstance(error, discord.Forbidden):
