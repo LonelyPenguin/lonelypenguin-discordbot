@@ -6,6 +6,7 @@ import os
 import traceback
 import sys
 import textwrap
+import functools
 
 from discord.ext import commands
 from config.server_vars import logs_channel_id, server_id, modmail_category_id, moderator_ids
@@ -139,36 +140,36 @@ class Modmail(commands.Cog):
     # endregion
 
     # region the listener itself, which calls the two functions above and has catch-all error handling
-    @commands.Cog.listener()
-    async def on_message(self, message):
-        try:
-            #  ignore if message sent by the bot or starts with a command or user blacklisted
+    def listener_check(listener):
+        @functools.wraps(listener)
+        async def wrapper_listener_check(*args, **kwargs):
+
+            self, message = args[0], args[1]
+
             if message.author.id == self.bot.user.id or any([message.content.startswith(x) for x in self.dont_trigger_onmessage]) or message.author.id in [each_row[1] for each_row in self.blacklisted_users]:
                 return
 
-            msg_channel = message.channel
-            msg_channelid = message.channel.id
-            msg_guild = message.guild
-            msg_authorid = message.author.id
-            my_guild = self.bot.get_guild(server_id)
+            await listener(*args, **kwargs)
 
-            if msg_guild is None:  # if in DM
+        return wrapper_listener_check
 
-                member_of_my_guild = my_guild.get_member(msg_authorid)
-                if not member_of_my_guild:
-                    return
+    @listener_check
+    @commands.Cog.listener(name="on_message")
+    async def dm_modmail_listener(self, message):
+        try:
 
-                c = await self.bot.conn.execute('SELECT * FROM activemodmails WHERE userid=?', (msg_authorid,))
+            if message.guild is None:  # if in DM
+
+                c = await self.bot.conn.execute('SELECT * FROM activemodmails WHERE userid=?', (message.author.id,))
                 my_row = await c.fetchone()
-                await self.bot.conn.commit()
 
-                if my_row is not None:  # if message in DM and part of an active modmail, relay message
+                if my_row is not None:  # if message part of an active modmail, relay message
                     try:
                         await self.relay_message(message, my_row, True)
                     except discord.Forbidden as error:
-                        await msg_channel.send(embed=self.simple_embed(f'Error: bot lacks permissions to relay your message. Please contact a moderator directly. ({error})'))
+                        await message.channel.send(embed=self.simple_embed(f'Error: bot lacks permissions to relay your message. Please contact a moderator directly. ({error})'))
 
-                else:  # if message in DM and not part of an active modmail, create modmail
+                else:  # if message not part of an active modmail, create modmail
 
                     if len(message.content) >= 1910:
                         await message.add_reaction('✂')
@@ -176,38 +177,46 @@ class Modmail(commands.Cog):
 
                     initiate_modmail_embed = discord.Embed(description=f'Please confirm that you would like to open a modmail and relay your message to KotLC Chats moderators.\n\n**Your message**:\n\n {msg_content}').set_author(
                         name=self.embed_details['author name'], icon_url=self.embed_details['author icon'])
-                    
+
                     confirm_view = Confirm(message.author)
-                    bot_msg = await msg_channel.send(embed=initiate_modmail_embed, view=confirm_view)
-                    
+                    await message.channel.send(embed=initiate_modmail_embed, view=confirm_view)
+
                     timed_out = await confirm_view.wait()
 
                     if timed_out:
-                        await msg_channel.send(embed=self.simple_embed('Timed out, process cancelled. To try again, send a new message.'))
+                        await message.channel.send(embed=self.simple_embed('Timed out, process cancelled. To try again, send a new message.'))
                         return
 
                     if confirm_view.value is True:  # if user confirms
-
-                        await msg_channel.send(embed=self.simple_embed('Okay, relaying your message to the moderators...'))
-
+                        await message.channel.send(embed=self.simple_embed('Okay, relaying your message to the moderators...'))
                         # open new modmail
-                        await self.open_modmail_func(message, msg_authorid, True)
+                        await self.open_modmail_func(message, message.author.id, True)
 
                     else:  # if user cancels
+                        await message.channel.send(embed=self.simple_embed('Cancelled.'))
 
-                        await msg_channel.send(embed=self.simple_embed('Cancelled.'))
+        except Exception as error:
+            await message.channel.send(embed=self.simple_embed(f'Something went wrong: {error}'))
+            print('Ignoring exception in on_message listener:', file=sys.stderr)
+            traceback.print_exception(
+                type(error), error, error.__traceback__, file=sys.stderr)
 
-            else:  # if not in DM
+    @listener_check
+    @commands.Cog.listener(name='on_message')
+    async def guild_modmail_listener(self, message):
 
-                c = await self.bot.conn.execute('SELECT * FROM activemodmails WHERE modmailchnlid=?', (msg_channelid, ))
+        try:
+            if message.guild is not None:  # if not in DM
+
+                c = await self.bot.conn.execute('SELECT * FROM activemodmails WHERE modmailchnlid=?', (message.channel.id, ))
                 my_row = await c.fetchone()
 
-                # if in active modmail channel (this handles whether the message is in the guild or not)
+                # if in active modmail channel
                 if my_row is not None:
                     try:
                         await self.relay_message(message, my_row, False)
                     except discord.Forbidden as error:
-                        await msg_channel.send(embed=self.simple_embed(f'Error: couldn\'t DM that user. ({error})'))
+                        await message.channel.send(embed=self.simple_embed(f'Error: couldn\'t DM that user. ({error})'))
 
         except Exception as error:
             await message.channel.send(embed=self.simple_embed(f'Something went wrong: {error}'))
@@ -243,7 +252,7 @@ class Modmail(commands.Cog):
 
         c = await self.bot.conn.execute('SELECT * FROM activemodmails WHERE modmailchnlid=?', (ctx.channel.id,))
         if await c.fetchone() is not None:
-            await ctx.send(embed = self.simple_embed('Error: you are currently in a modmail. Run this command in a different channel (for privacy).'))
+            await ctx.send(embed=self.simple_embed('Error: you are currently in a modmail. Run this command in a different channel (for privacy).'))
             return
 
         initialize_question_embed = discord.Embed(description=f'What message should I DM to {open_modmail_with_user.mention} to initiate this modmail?').set_author(
