@@ -4,12 +4,12 @@ import aiosqlite
 import asyncio
 import os
 
-class ModmailAuxiliaries(commands.Cog):
-    "Developer commands providing common shortcuts to make the testing and development of the modmail setup easier. Currently, these commands will only respond to LonelyPenguin."
+class DevCommands(commands.Cog):
+    "Developer commands providing common shortcuts to make the testing and development of the bot easier. Currently, these commands will only respond to LonelyPenguin."
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        print("\nLoaded/reloaded modmail_auxiliaries_cog\n----")
+        print("\nLoaded/reloaded dev_commands_cog\n----")
 
     def cog_check(self, ctx):
         return ctx.message.author.id == 305704400041803776
@@ -96,4 +96,4 @@ class ModmailAuxiliaries(commands.Cog):
 
 
 def setup(bot: commands.Bot):
-    bot.add_cog(ModmailAuxiliaries(bot))
+    bot.add_cog(DevCommands(bot))
