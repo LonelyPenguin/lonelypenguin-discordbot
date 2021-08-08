@@ -37,7 +37,7 @@ class Modmail(commands.Cog):
                                        ';deletemanychannels', ';reload', ';reloadcog', ';blacklist']
         print('\nLoaded/reloaded modmail_cog\n----')
 
-    def cog_check(self, ctx):
+    def cog_check(self, ctx: commands.Context):
         return ctx.author.id not in [each_row[1] for each_row in self.blacklisted_users] or ctx.author.id == 305704400041803776 or ctx.author.id in moderator_ids
 
     def check_if_moderator():
@@ -51,7 +51,7 @@ class Modmail(commands.Cog):
     # endregion
 
     # region open_modmail_func and relay_message
-    async def open_modmail_func(self, messagectx, modmailuserid, from_user: bool, modmailreason="no reason specified"):
+    async def open_modmail_func(self, messagectx: discord.Message, modmailuserid: int, from_user: bool, modmailreason: str = "no reason specified"):
 
         modmail_user = self.bot.get_user(modmailuserid)
 
@@ -115,7 +115,7 @@ class Modmail(commands.Cog):
         await initial_user_msg.pin()
         await initial_mod_msg.pin()
 
-    async def relay_message(self, messagectx, row, from_user: bool):
+    async def relay_message(self, messagectx: discord.Message, row: tuple, from_user: bool):
 
         if len(messagectx.content) >= 1960:
             await messagectx.add_reaction('✂')
@@ -139,8 +139,8 @@ class Modmail(commands.Cog):
 
     # endregion
 
-    # region the listener itself, which calls the two functions above and has catch-all error handling
-    def listener_check(listener):
+    # region the listeners themselves, which call the two functions above and have catch-all error handling
+    def listener_check(listener: function):
         @functools.wraps(listener)
         async def wrapper_listener_check(*args, **kwargs):
 
@@ -155,7 +155,7 @@ class Modmail(commands.Cog):
 
     @listener_check
     @commands.Cog.listener(name="on_message")
-    async def dm_modmail_listener(self, message):
+    async def dm_modmail_listener(self, message: discord.Message):
         try:
 
             if message.guild is None:  # if in DM
@@ -203,7 +203,7 @@ class Modmail(commands.Cog):
 
     @listener_check
     @commands.Cog.listener(name='on_message')
-    async def guild_modmail_listener(self, message):
+    async def guild_modmail_listener(self, message: discord.Message):
 
         try:
             if message.guild is not None:  # if not in DM
@@ -227,14 +227,14 @@ class Modmail(commands.Cog):
 
     # region modmail commands and errors
     @commands.group()
-    async def modmail(self, ctx):
+    async def modmail(self, ctx: commands.Context):
         """Commands for managing modmails. Use ;help modmail <command> to view each command."""
         if not ctx.invoked_subcommand:
             await ctx.send(embed=self.simple_embed('Run `;help modmail` for details.'))
 
     @modmail.command(name='open', aliases=['start', 'initiate', 'new'])
     @check_if_moderator()
-    async def mod_open_modmail(self, ctx, open_modmail_with_user: discord.Member, *, new_modmail_reason="no reason specified"):
+    async def mod_open_modmail(self, ctx: commands.Context, open_modmail_with_user: discord.Member, *, new_modmail_reason: str = "no reason specified"):
 
         """Command for moderators to open a new modmail with a designated user.
         Cannot be used by regular users. 
@@ -269,7 +269,7 @@ class Modmail(commands.Cog):
         await msg.add_reaction('👍')
 
     @mod_open_modmail.error
-    async def mod_open_modmail_error(self, ctx, error):
+    async def mod_open_modmail_error(self, ctx: commands.Context, error):
         if isinstance(error, commands.CommandInvokeError):
             error = error.original
         if isinstance(error, discord.Forbidden) or isinstance(error, AttributeError):
@@ -293,7 +293,7 @@ class Modmail(commands.Cog):
 
     @modmail.command(name='close', aliases=['shutdown', 'finish', 'end'])
     @commands.cooldown(1, 300.0, commands.cooldowns.BucketType.channel)
-    async def closemodmail(self, ctx):
+    async def closemodmail(self, ctx: commands.Context):
         """Closes an open modmail.
         Must be used in the channel/DM attached to the modmail.
         Can be used by moderators or the modmail user.
@@ -366,7 +366,7 @@ class Modmail(commands.Cog):
         await modmail_channel.delete()
 
     @closemodmail.error
-    async def closemodmail_error(self, ctx, error):
+    async def closemodmail_error(self, ctx: commands.Context, error):
         if isinstance(error, commands.CommandInvokeError):
             error = error.original
         if isinstance(error, TypeError):
@@ -391,7 +391,7 @@ class Modmail(commands.Cog):
 
     @modmail.command(name='reason', aliases=['topic', 'subject'])
     @commands.cooldown(2, 10.0, commands.cooldowns.BucketType.channel)
-    async def modmailreason(self, ctx, *, reason: str):
+    async def modmailreason(self, ctx: commands.Context, *, reason: str):
         """Set a new reason for an open modmail.
         Must be used in the channel/DM attached to the modmail.
         Overwrites previous reasons, but reason changes are logged.
@@ -423,7 +423,7 @@ class Modmail(commands.Cog):
         await user_reason_updated_msg.pin()
 
     @modmailreason.error
-    async def modmailreason_error(self, ctx, error):
+    async def modmailreason_error(self, ctx: commands.Context, error):
         if isinstance(error, commands.CommandInvokeError):
             error = error.original
         if isinstance(error, TypeError):
@@ -455,14 +455,14 @@ class Modmail(commands.Cog):
     # region blacklist commands and errors
     @commands.group()
     @check_if_moderator()
-    async def blacklist(self, ctx):
+    async def blacklist(self, ctx: commands.Context):
         "Commands to prevent certain users from using the modmail bot (e.g. if they're spamming)."
         if not ctx.invoked_subcommand:
             await ctx.send(embed=self.simple_embed('Run `;help blacklist` for details, or `;blacklist show` to view the current blacklist.'))
 
     @blacklist.command(name='add')
     @check_if_moderator()
-    async def blacklist_add(self, ctx, user_to_blacklist: discord.Member):
+    async def blacklist_add(self, ctx: commands.Context, user_to_blacklist: discord.Member):
         """Adds a user to the blacklist (prevents them from using the bot).
         Remove someone from the blacklist with ;blacklist remove.
         Only moderators can use this command.
@@ -491,7 +491,7 @@ class Modmail(commands.Cog):
 
     @blacklist.command(name='show', aliases=['view'])
     @check_if_moderator()
-    async def blacklist_show(self, ctx):
+    async def blacklist_show(self, ctx: commands.Context):
         """Shows the current state of the blacklist (who's on it and when they were blacklisted).
         Blacklist someone with ;blacklist add and unblacklist them with ;blacklist remove.
         Only moderators can use this command."""
@@ -515,7 +515,7 @@ class Modmail(commands.Cog):
 
     @blacklist.command(name='remove')
     @check_if_moderator()
-    async def blacklist_remove(self, ctx, user_to_unblacklist: discord.Member):
+    async def blacklist_remove(self, ctx: commands.Context, user_to_unblacklist: discord.Member):
         """Unblacklists a user, allowing them to make use of the bot again.
         Only moderators can use this command.
         Users will be notified that they are unblacklisted.
@@ -542,7 +542,7 @@ class Modmail(commands.Cog):
         await user_to_unblacklist.send(embed=user_inform_unblacklist_embed)
 
     @blacklist_add.error
-    async def blacklist_add_error(self, ctx, error):
+    async def blacklist_add_error(self, ctx: commands.Context, error):
         if isinstance(error, commands.CommandInvokeError):
             error = error.original
         if isinstance(error, discord.Forbidden):
@@ -558,7 +558,7 @@ class Modmail(commands.Cog):
                 type(error), error, error.__traceback__, file=sys.stderr)
 
     @blacklist_remove.error
-    async def blacklist_remove_error(self, ctx, error):
+    async def blacklist_remove_error(self, ctx: commands.Context, error):
         if isinstance(error, commands.CommandInvokeError):
             error = error.original
         if isinstance(error, discord.Forbidden):

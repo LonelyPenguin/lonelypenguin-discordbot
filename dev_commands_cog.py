@@ -11,11 +11,11 @@ class DevCommands(commands.Cog):
         self.bot = bot
         print("\nLoaded/reloaded dev_commands_cog\n----")
 
-    def cog_check(self, ctx):
+    def cog_check(self, ctx: commands.Context):
         return ctx.message.author.id == 305704400041803776
 
     @commands.command()
-    async def deletemanychannels(self, ctx, *, list_of_ids: str):
+    async def deletemanychannels(self, ctx: commands.Context, *, list_of_ids: str):
         "A command that deletes all channels from IDs in a list. List must be structured as '[id, id, id]', without quotes. This command is meant for use in development, as testing of the modmail system often leaves behind orphaned modmail channels. Not designed or tested for widespread use. Only responds to LonelyPenguin."
         ids_actual_int_list = list_of_ids.split()
         for chnl_id in ids_actual_int_list:
@@ -25,7 +25,7 @@ class DevCommands(commands.Cog):
         await ctx.message.add_reaction('👍')
 
     @commands.command()
-    async def showdb(self, ctx):
+    async def showdb(self, ctx: commands.Context):
         "A command that shows the current state of the activemodmails table as a file upload to the channel it is used in. Only meant for use in development, to detect duplicate modmails and the like. Logs of modmail content are contained in this table, so the command may reveal sensitive information. Not designed or tested for widespread use. Only responds to LonelyPenguin."
 
         c = await self.bot.conn.execute('SELECT * FROM activemodmails')
@@ -48,7 +48,7 @@ class DevCommands(commands.Cog):
 
     
     @commands.command(aliases = ['reload', 'reloadcog'])
-    async def reloadext(self, ctx, cog_to_reload):
+    async def reloadext(self, ctx: commands.Context, cog_to_reload: str):
         "A command which reloads an extension (a file called by the main bot process). Extensions contain cogs, which are different categories of functionality and commands. This command provides the ability to reload an extension after making changes to its code, without relaunching the whole bot. cog_to_reload must be the file name of the extension, without file path or .py file extension. Not designed or tested for widespread use. Only responds to LonelyPenguin."
         try:
             self.bot.reload_extension(cog_to_reload)
@@ -57,7 +57,7 @@ class DevCommands(commands.Cog):
             await ctx.send(f'Something went wrong: {e}')
 
     @commands.command()
-    async def cleandb(self, ctx, user_id):
+    async def cleandb(self, ctx: commands.Context, user_id: str):
 
         user_id = int(user_id)
 
