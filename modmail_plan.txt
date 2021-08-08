@@ -3,6 +3,8 @@ todo:
 figure out how to host???
 squash lingering syntax errors?
 examine which messages are being pinned. are they the right ones? should it unpin at the end?
+add error handler for blacklist show (even just printing the error is better than nothing)
+fix docstrings
 
 make file for views and import relevant views where needed (confirm/cancel for example)
 slash commands:
