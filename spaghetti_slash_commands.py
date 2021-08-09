@@ -12,6 +12,8 @@ class SpaghettiSlashCommands(commands.Cog):
     async def on_interaction(self, interaction: discord.Interaction):
         """Handles this bot's one and only slash command."""
 
+        if interaction.type != discord.InteractionType.application_command:
+            return
         if interaction.data['id'] != '873001414094377050':
             return
         command_content = interaction.data['options'][0]['value']
