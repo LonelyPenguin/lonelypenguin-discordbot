@@ -55,7 +55,7 @@ class Modmail(commands.Cog):
             return ctx.author.id in moderator_ids
         return commands.check(predicate)
 
-    def listener_check(listener: function):
+    def listener_check(listener):
         """Decorator that ensures that listeners will only trigger when they are meant to (basic check).
 
         Listeners decorated with this function will not trigger on blacklisted users, bots, or commands.
