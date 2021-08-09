@@ -55,6 +55,24 @@ class Modmail(commands.Cog):
             return ctx.author.id in moderator_ids
         return commands.check(predicate)
 
+    def listener_check(listener: function):
+        """Decorator that ensures that listeners will only trigger when they are meant to (basic check).
+
+        Listeners decorated with this function will not trigger on blacklisted users, bots, or commands.
+        """
+
+        @functools.wraps(listener)
+        async def wrapper_listener_check(*args, **kwargs):
+
+            self, message = args[0], args[1]
+
+            if message.author.bot or any([message.content.startswith(x) for x in self.dont_trigger_onmessage]) or message.author.id in [each_row[1] for each_row in self.blacklisted_users]:
+                return
+
+            await listener(*args, **kwargs)
+
+        return wrapper_listener_check
+
     def simple_embed(self, desc: str):
         """Shortcut for creating an embed with only a description."""
 
@@ -166,24 +184,6 @@ class Modmail(commands.Cog):
     # endregion
 
     # region the listeners themselves, which call the two functions above and have catch-all error handling
-    def listener_check(listener: function):
-        """Decorator that ensures that listeners will only trigger when they are meant to (basic check).
-
-        Listeners decorated with this function will not trigger on blacklisted users, bots, or commands.
-        """
-
-        @functools.wraps(listener)
-        async def wrapper_listener_check(*args, **kwargs):
-
-            self, message = args[0], args[1]
-
-            if message.author.bot or any([message.content.startswith(x) for x in self.dont_trigger_onmessage]) or message.author.id in [each_row[1] for each_row in self.blacklisted_users]:
-                return
-
-            await listener(*args, **kwargs)
-
-        return wrapper_listener_check
-
     @listener_check
     @commands.Cog.listener(name="on_message")
     async def dm_modmail_listener(self, message: discord.Message):
