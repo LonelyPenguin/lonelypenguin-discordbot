@@ -1,13 +1,14 @@
 todo:
 
 figure out how to host???
-squash lingering syntax errors?
 examine which messages are being pinned. are they the right ones? should it unpin at the end?
 add error handler for blacklist show (even just printing the error is better than nothing)
-fix docstrings
+make docstrings better
+clean up extension loading/reloading print statements
+move listener_check to with the other checks
+commands to add moderators to moderator list
+fix up file tree? idk if necessary. rename sans "cog"?
+change strings with \' to use double quotes
 
-make file for views and import relevant views where needed (confirm/cancel for example)
-slash commands:
-remember how to make git branch and stuff
-use on_interaction (sorry dpy support people)
 notes/resources:
+https://realpython.com/documenting-python-code/
