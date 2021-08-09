@@ -22,7 +22,7 @@ class Modmail(commands.Cog):
     Once closed, users and moderators will be sent a log of the conversation.
     Attachements function as expected. 
     Moderators can use ;modmail open <user> [reason] to open a modmail with a specific user.
-    A \'✅\' reaction on a message means it\'s been successfully relayed, and messages without this reaction have not been relayed.
+    A '✅' reaction on a message means it's been successfully relayed, and messages without this reaction have not been relayed.
     A ✂️ means the message has been cut to stay within the character limit.
     If system does not function as expected, please contact LonelyPenguin#9931.
     """
@@ -124,18 +124,20 @@ class Modmail(commands.Cog):
         await self.bot.conn.commit()
 
         if from_user:
-            mod_modmail_opened_embed = discord.Embed(description=f'New modmail from {messagectx.author.mention} (see their message below). Send a message in this channel to respond.\n\nA ✅ on your message means it\'s been successfully relayed, and a ✂️ means it has been cut to stay within the character limit.').set_author(
+            mod_modmail_opened_embed = discord.Embed(description=f"New modmail from {messagectx.author.mention} (see their message below). Send a message in this channel to respond.\n\nA ✅ on your message means it's been successfully relayed, and a ✂️ means it has been cut to stay within the character limit.").set_author(
                 name=self.embed_details['author name'], icon_url=self.embed_details['author icon']).set_footer(text=self.embed_details['footer'])
 
-            user_modmail_opened_embed = discord.Embed(description=f'Opened a new modmail and sent your message.\n\nAll messages sent will be relayed back and forth between you and the moderators. A ✅ on your message means it\'s been successfully relayed, and a ✂️ means it has been cut to stay within the character limit.').set_author(
+            user_modmail_opened_embed = discord.Embed(description=f"Opened a new modmail and sent your message.\n\nAll messages sent will be relayed back and forth between you and the moderators. A ✅ on your message means it's been successfully relayed, and a ✂️ means it has been cut to stay within the character limit.").set_author(
                 name=self.embed_details['author name'], icon_url=self.embed_details['author icon']).set_footer(text=self.embed_details['footer'])
 
             relay_first_message_to = modmail_channel
 
         else:
+            # single quotes used despite apostrophes due to double quotes elsewhere in string
             mod_modmail_opened_embed = discord.Embed(description=f'Modmail opened by moderator {messagectx.author.mention} to talk to user {modmail_user.mention}. The reason for this modmail is "{modmailreason}".\n\nA ✅ on your message means it\'s been successfully relayed.\n\n**{messagectx.author.name}\'s initial message**:\n\n{message_content[:1639]}').set_author(
                 name=self.embed_details['author name'], icon_url=self.embed_details['author icon']).set_footer(text=self.embed_details['footer'])
 
+            # single quotes used despite apostrophes due to double quotes elsewhere in string
             user_modmail_opened_embed = discord.Embed(description=f'A moderator on KotLC Chats opened a new modmail to speak with you (see their message below). Send a message in this DM to respond. The reason for this modmail is "{modmailreason}". \n\nAll messages sent will be relayed back and forth between you and the moderators. A ✅ on your message means it\'s been successfully relayed, and a ✂️ means it has been cut to stay within the character limit.').set_author(
                 name=self.embed_details['author name'], icon_url=self.embed_details['author icon']).set_footer(text=self.embed_details['footer'])
 
@@ -179,7 +181,7 @@ class Modmail(commands.Cog):
 
             await messagectx.add_reaction('✅')
         except discord.Forbidden as error:
-            await messagectx.channel.send(embed=self.simple_embed(f'Error: Couldn\'t send a message to this user; they have probably blocked the bot. Try DMing them directly. (Alternatively, bot can\'t add a reaction to your message.) ({error})'))
+            await messagectx.channel.send(embed=self.simple_embed(f"Error: Couldn't send a message to this user; they have probably blocked the bot. Try DMing them directly. (Alternatively, bot can't add a reaction to your message.) ({error})"))
 
     # endregion
 
@@ -250,7 +252,7 @@ class Modmail(commands.Cog):
                     try:
                         await self.relay_message(message, my_row, False)
                     except discord.Forbidden as error:
-                        await message.channel.send(embed=self.simple_embed(f'Error: couldn\'t DM that user. ({error})'))
+                        await message.channel.send(embed=self.simple_embed(f"Error: couldn't DM that user. ({error})"))
 
         except Exception as error:
             await message.channel.send(embed=self.simple_embed(f'Something went wrong: {error}'))
@@ -307,7 +309,7 @@ class Modmail(commands.Cog):
         if isinstance(error, commands.CommandInvokeError):
             error = error.original
         if isinstance(error, discord.Forbidden) or isinstance(error, AttributeError):
-            await ctx.send(embed=self.simple_embed(f'Error: bot probably can\'t DM that user. ({error})'))
+            await ctx.send(embed=self.simple_embed(f"Error: bot probably can't DM that user. ({error})"))
         elif isinstance(error, asyncio.TimeoutError):
             await ctx.send(embed=self.simple_embed(f'Timed out. Use the command ;modmail open <user> [reason] to try again. ({error})'))
         elif isinstance(error, commands.MissingRequiredArgument):
@@ -393,6 +395,7 @@ class Modmail(commands.Cog):
         dpy_compatible_log = discord.File(log_filename_with_path)
         os.remove(log_filename_with_path)
 
+        # single quotes used despite apostrophes due to double quotes elsewhere in string
         user_modmail_closed_embed = discord.Embed(description=f'Modmail closed by {ctx.author.name}. At time of closure, the modmail\'s reason was "{modmail_reason}".').set_author(
             name=self.embed_details['author name'], icon_url=self.embed_details['author icon']).set_footer(text='Send another message to open a new modmail.')
         await modmail_user.send(embed=user_modmail_closed_embed)
@@ -404,15 +407,15 @@ class Modmail(commands.Cog):
         if isinstance(error, commands.CommandInvokeError):
             error = error.original
         if isinstance(error, TypeError):
-            await ctx.send(embed=self.simple_embed(f'Error: You probably aren\'t in a modmail. ({error})'), delete_after=5.0)
+            await ctx.send(embed=self.simple_embed(f"Error: You probably aren't in a modmail. ({error})"), delete_after=5.0)
             await ctx.message.delete(delay=4.75)
         elif isinstance(error, discord.HTTPException):
             if error.code == 50035:
                 await ctx.send(embed=self.simple_embed(f'Error: Reason is too long– change the reason to a shorter one, then close the modmail. ({error})'))
         elif isinstance(error, discord.Forbidden):
-            await ctx.send(embed=self.simple_embed(f'Note: Modmail closed, but couldn\'t DM the user to notify them. ({error})'))
+            await ctx.send(embed=self.simple_embed(f"Note: Modmail closed, but couldn't DM the user to notify them. ({error})"))
         elif isinstance(error, commands.CommandOnCooldown):
-            await ctx.send(embed=self.simple_embed(f'On cooldown: You can\'t use this command for another {round(error.retry_after)} seconds. This is probably because you have very recently closed a different modmail. You can ask a moderator to close this modmail for you if that\'s convenient.'))
+            await ctx.send(embed=self.simple_embed(f"On cooldown: You can't use this command for another {round(error.retry_after)} seconds. This is probably because you have very recently closed a different modmail. You can ask a moderator to close this modmail for you if that's convenient."))
         elif isinstance(error, AttributeError):
             await ctx.send(embed=self.simple_embed(f'Error: Modmail channel was probably already deleted. Modmail has probably still been closed, though. ({error})'))
         else:
@@ -461,7 +464,7 @@ class Modmail(commands.Cog):
         if isinstance(error, commands.CommandInvokeError):
             error = error.original
         if isinstance(error, TypeError):
-            await ctx.send(embed=self.simple_embed(f'Error: You probably aren\'t in a modmail. ({error})'), delete_after=5.0)
+            await ctx.send(embed=self.simple_embed(f"Error: You probably aren't in a modmail. ({error})"), delete_after=5.0)
             await ctx.message.delete(delay=4.75)
         elif isinstance(error, discord.HTTPException):
             if error.code == 50035:
@@ -471,12 +474,12 @@ class Modmail(commands.Cog):
         elif isinstance(error, commands.MissingRequiredArgument):
             await ctx.send(embed=self.simple_embed(f'Error: Missing a required argument. Proper syntax: `;modmail reason <reason>`. ({error})'))
         elif isinstance(error, commands.CommandOnCooldown):
-            await ctx.send(embed=self.simple_embed(f'On cooldown: You can\'t change this modmail\'s reason again for another {round(error.retry_after)} seconds.'))
+            await ctx.send(embed=self.simple_embed(f"On cooldown: You can't change this modmail's reason again for another {round(error.retry_after)} seconds."))
         elif isinstance(error, discord.Forbidden):
             if ctx.guild is None:
-                await ctx.send(embed=self.simple_embed(f'Note: Reason was changed, but bot probably does not have permissions to pin messages in the mod\'s modmail channel. Please contact a moderator. ({error})'))
+                await ctx.send(embed=self.simple_embed(f"Note: Reason was changed, but bot probably does not have permissions to pin messages in the mod's modmail channel. Please contact a moderator. ({error})"))
             else:
-                await ctx.send(embed=self.simple_embed(f'Note: Changed the reason, but couldn\'t DM the user– they have probably blocked the bot. ({error})'))
+                await ctx.send(embed=self.simple_embed(f"Note: Changed the reason, but couldn't DM the user– they have probably blocked the bot. ({error})"))
         else:
             # All other errors not returned come here. And we can just print the default Traceback.
             await ctx.send(embed=self.simple_embed(f'Something went wrong: {error}'))
@@ -528,7 +531,7 @@ class Modmail(commands.Cog):
         if isinstance(error, commands.CommandInvokeError):
             error = error.original
         if isinstance(error, discord.Forbidden):
-            await ctx.send(embed=self.simple_embed(f'Note: Blacklisted user, but couldn\'t notify them– they have probably blocked the bot. ({error})'))
+            await ctx.send(embed=self.simple_embed(f"Note: Blacklisted user, but couldn't notify them– they have probably blocked the bot. ({error})"))
         elif isinstance(error, commands.MemberNotFound):
             await ctx.send(embed=self.simple_embed(f'Error: member not found. ({error})'))
         else:
@@ -606,7 +609,7 @@ class Modmail(commands.Cog):
         if isinstance(error, commands.CommandInvokeError):
             error = error.original
         if isinstance(error, discord.Forbidden):
-            await ctx.send(embed=self.simple_embed(f'Note: Unblacklisted user, but but couldn\'t notify them– they have probably blocked the bot. ({error})'))
+            await ctx.send(embed=self.simple_embed(f"Note: Unblacklisted user, but but couldn't notify them– they have probably blocked the bot. ({error})"))
         elif isinstance(error, commands.MemberNotFound):
             await ctx.send(embed=self.simple_embed(f'Error: member not found. ({error})'))
         else:
