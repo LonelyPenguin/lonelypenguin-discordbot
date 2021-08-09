@@ -151,8 +151,6 @@ class Modmail(commands.Cog):
         else:
             await relay_first_message_to.send(f'**{messagectx.author.name}**: {message_content}')
 
-        await initial_user_msg.pin()
-        await initial_mod_msg.pin()
 
     async def relay_message(self, messagectx: discord.Message, row: tuple, from_user: bool):
         """Relays a message from a DMing user to moderators, or vice-versa.
