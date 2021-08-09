@@ -1,7 +1,6 @@
 todo:
 
 2 figure out how to host???
-1 examine which messages are being pinned. are they the right ones? should it unpin at the end?
 1 make docstrings better
 1.5 commands to add moderators to moderator list (needs json– config file or something?)
 
