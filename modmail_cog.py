@@ -38,7 +38,6 @@ class Modmail(commands.Cog):
                               'footer': 'Use ;modmail close to close this modmail, and ;modmail reason to change its reason.'}
         self.dont_trigger_onmessage = [';modmail', ';reloadext', ';showdb',
                                        ';deletemanychannels', ';reload', ';reloadcog', ';blacklist']
-        print('\nLoaded/reloaded modmail_cog\n----')
 
     def cog_check(self, ctx: commands.Context):
         """Ensures that all commands in this cog only trigger when they are meant to.

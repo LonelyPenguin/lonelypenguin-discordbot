@@ -13,7 +13,6 @@ class DevCommands(commands.Cog):
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        print("\nLoaded/reloaded dev_commands_cog\n----")
 
     def cog_check(self, ctx: commands.Context):
         """Ensure that only LonelyPenguin may use these commands."""
@@ -74,6 +73,7 @@ class DevCommands(commands.Cog):
         try:
             self.bot.reload_extension(cog_to_reload)
             await ctx.send(f'Reloaded {cog_to_reload}!')
+            print(f'\nReloaded extension {cog_to_reload}')
         except Exception as e:
             await ctx.send(f'Something went wrong: {e}')
 

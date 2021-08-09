@@ -41,6 +41,7 @@ async def startup():
 
         for extension in all_extensions:
             bot.load_extension(extension)
+            print(f'\nLoaded extension {extension}')
 
         print(f'\nStarting bot up \n----')
 

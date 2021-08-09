@@ -1,14 +1,15 @@
 todo:
 
-figure out how to host???
-examine which messages are being pinned. are they the right ones? should it unpin at the end?
-add error handler for blacklist show (even just printing the error is better than nothing)
-make docstrings better
-clean up extension loading/reloading print statements
-move listener_check to with the other checks
-commands to add moderators to moderator list
-fix up file tree? idk if necessary. rename sans "cog"?
-change strings with \' to use double quotes
+2 figure out how to host???
+1 examine which messages are being pinned. are they the right ones? should it unpin at the end?
+1 make docstrings better
+1.5 commands to add moderators to moderator list (needs json– config file or something?)
+1 fix up file tree? idk if necessary. rename sans "cog"?
+1 add ping command
 
 notes/resources:
 https://realpython.com/documenting-python-code/
+
+0 = easy, menial
+1 = some thinking required
+2 = big change/tons of thinking required
