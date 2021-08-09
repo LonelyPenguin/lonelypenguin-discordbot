@@ -17,41 +17,61 @@ from views import Confirm
 class Modmail(commands.Cog):
     # region cog/category docstring
     """Fully-featured modmail setup. DM this bot to open a modmail and speak to moderators. 
+
     Use ;modmail reason and ;modmail close in an open modmail (channel or DM) to change the modmail reason or close it.
     Once closed, users and moderators will be sent a log of the conversation.
     Attachements function as expected. 
     Moderators can use ;modmail open <user> [reason] to open a modmail with a specific user.
     A \'✅\' reaction on a message means it\'s been successfully relayed, and messages without this reaction have not been relayed.
     A ✂️ means the message has been cut to stay within the character limit.
-    If system does not function as expected, please contact LonelyPenguin#9931."""
+    If system does not function as expected, please contact LonelyPenguin#9931.
+    """
     # endregion
 
-    # region bot setup and small stuff
+    # region bot setup, checks, and small stuff
     def __init__(self, bot: commands.Bot):
 
         self.bot = bot
         self.blacklisted_users = self.bot.blacklisted_users
-        self.embed_details = {'author name': 'Servername Modmail', 'author icon': 'https://cdn.discordapp.com/attachments/743536411369799804/854865953083228181/mail_icon.png',
+        self.embed_details = {'author name': 'Servername Modmail',
+                              'author icon': 'https://cdn.discordapp.com/attachments/743536411369799804/854865953083228181/mail_icon.png',
                               'footer': 'Use ;modmail close to close this modmail, and ;modmail reason to change its reason.'}
         self.dont_trigger_onmessage = [';modmail', ';reloadext', ';showdb',
                                        ';deletemanychannels', ';reload', ';reloadcog', ';blacklist']
         print('\nLoaded/reloaded modmail_cog\n----')
 
     def cog_check(self, ctx: commands.Context):
+        """Ensures that all commands in this cog only trigger when they are meant to.
+
+        To successfully trigger a command, user must not be blacklisted from the bot, or must be LonelyPenguin or a moderator.
+        """
+
         return ctx.author.id not in [each_row[1] for each_row in self.blacklisted_users] or ctx.author.id == 305704400041803776 or ctx.author.id in moderator_ids
 
     def check_if_moderator():
+        """Commands with this check will only execute for moderators."""
+
         def predicate(ctx):
             return ctx.author.id in moderator_ids
         return commands.check(predicate)
 
     def simple_embed(self, desc: str):
+        """Shortcut for creating an embed with only a description."""
+
         my_embed = discord.Embed(description=desc)
         return my_embed
     # endregion
 
     # region open_modmail_func and relay_message
     async def open_modmail_func(self, messagectx: discord.Message, modmailuserid: int, from_user: bool, modmailreason: str = "no reason specified"):
+        """Function that goes through all the necessary steps to open a modmail.
+
+        :param messagectx: discord.Message object that is the initial message to send in the modmail.
+        :param modmailuserid: ID of user to open modmail with.
+        :param from_user: Whether the modmail is being opened by a user DMing the bot (otherwise, by a moderator with a cmd).
+        :param modmailreason: The modmail's initial reason. Modmails opened by DMing the bot can initially only have the default reason.
+
+        Called by the DM message listener and the ;modmail open command."""
 
         modmail_user = self.bot.get_user(modmailuserid)
 
@@ -116,6 +136,12 @@ class Modmail(commands.Cog):
         await initial_mod_msg.pin()
 
     async def relay_message(self, messagectx: discord.Message, row: tuple, from_user: bool):
+        """Relays a message from a DMing user to moderators, or vice-versa.
+
+        :param messagectx: discord.Message object– the message to be relayed.
+        :param row: Database row associated with the modmail.
+        :param from_user: Whether the message is from a DMing user (otherwise, from a moderator).
+        """
 
         if len(messagectx.content) >= 1960:
             await messagectx.add_reaction('✂')
@@ -141,12 +167,17 @@ class Modmail(commands.Cog):
 
     # region the listeners themselves, which call the two functions above and have catch-all error handling
     def listener_check(listener: function):
+        """Decorator that ensures that listeners will only trigger when they are meant to (basic check).
+
+        Listeners decorated with this function will not trigger on blacklisted users, bots, or commands.
+        """
+
         @functools.wraps(listener)
         async def wrapper_listener_check(*args, **kwargs):
 
             self, message = args[0], args[1]
 
-            if message.author.id == self.bot.user.id or any([message.content.startswith(x) for x in self.dont_trigger_onmessage]) or message.author.id in [each_row[1] for each_row in self.blacklisted_users]:
+            if message.author.bot or any([message.content.startswith(x) for x in self.dont_trigger_onmessage]) or message.author.id in [each_row[1] for each_row in self.blacklisted_users]:
                 return
 
             await listener(*args, **kwargs)
@@ -156,6 +187,8 @@ class Modmail(commands.Cog):
     @listener_check
     @commands.Cog.listener(name="on_message")
     async def dm_modmail_listener(self, message: discord.Message):
+        """Listens for DM messages and handles relaying or opening modmails from there."""
+
         try:
 
             if message.guild is None:  # if in DM
@@ -204,6 +237,7 @@ class Modmail(commands.Cog):
     @listener_check
     @commands.Cog.listener(name='on_message')
     async def guild_modmail_listener(self, message: discord.Message):
+        """Listens for messages in modmail channels and calls relay_message to relay them to the relevant user."""
 
         try:
             if message.guild is not None:  # if not in DM

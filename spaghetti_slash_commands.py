@@ -3,12 +3,14 @@ from discord.ext import commands
 import aiohttp
 
 class SpaghettiSlashCommands(commands.Cog):
+    """Slash commands before they're fully implemented by discord.py. Playing around, proof-of-concept."""
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
     @commands.Cog.listener()
     async def on_interaction(self, interaction: discord.Interaction):
+        """Handles this bot's one and only slash command."""
 
         if interaction.data['id'] != '873001414094377050':
             return
