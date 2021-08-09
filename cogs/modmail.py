@@ -211,12 +211,17 @@ class Modmail(commands.Cog):
                         name=self.embed_details['author name'], icon_url=self.embed_details['author icon'])
 
                     confirm_view = Confirm(message.author)
-                    await message.channel.send(embed=initiate_modmail_embed, view=confirm_view)
+                    confirm_view.message = await message.channel.send(embed=initiate_modmail_embed, view=confirm_view)
 
                     timed_out = await confirm_view.wait()
 
+                    for child in confirm_view.children:
+                        child.disabled = True
+                    await confirm_view.message.edit(view=confirm_view)
+
                     if timed_out:
-                        await message.channel.send(embed=self.simple_embed('Timed out, process cancelled. To try again, send a new message.'))
+                        confirm_view = confirm_view
+                        await message.channel.send(embed=self.simple_embed('Timed out; process cancelled. To try again, send a new message.'))
                         return
 
                     if confirm_view.value is True:  # if user confirms

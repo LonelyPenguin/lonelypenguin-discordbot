@@ -10,13 +10,11 @@ class Confirm(discord.ui.View):
     @discord.ui.button(label='Confirm', style=discord.ButtonStyle.green)
     async def confirm(self, button: discord.ui.Button, interaction: discord.Interaction):
         self.value = True
-        button.disabled = True
         self.stop()
 
     @discord.ui.button(label='Cancel', style=discord.ButtonStyle.grey)
     async def cancel(self, button: discord.ui.Button, interaction: discord.Interaction):
         self.value = False
-        button.disabled = True
         self.stop()
 
     async def interaction_check(self, interaction):
