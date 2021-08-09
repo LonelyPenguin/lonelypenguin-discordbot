@@ -523,6 +523,22 @@ class Modmail(commands.Cog):
         await ctx.send(embed=mod_confirmed_blacklist_embed)
         await user_to_blacklist.send(embed=user_inform_blacklist_embed)
 
+    @blacklist_add.error
+    async def blacklist_add_error(self, ctx: commands.Context, error):
+        if isinstance(error, commands.CommandInvokeError):
+            error = error.original
+        if isinstance(error, discord.Forbidden):
+            await ctx.send(embed=self.simple_embed(f'Note: Blacklisted user, but couldn\'t notify them– they have probably blocked the bot. ({error})'))
+        elif isinstance(error, commands.MemberNotFound):
+            await ctx.send(embed=self.simple_embed(f'Error: member not found. ({error})'))
+        else:
+            # All other errors not returned come here. And we can just print the default Traceback.
+            await ctx.send(embed=self.simple_embed(f'Something went wrong: {error}'))
+            print('Ignoring exception in command {}:'.format(
+                ctx.command), file=sys.stderr)
+            traceback.print_exception(
+                type(error), error, error.__traceback__, file=sys.stderr)
+
     @blacklist.command(name='show', aliases=['view'])
     @check_if_moderator()
     async def blacklist_show(self, ctx: commands.Context):
@@ -546,6 +562,16 @@ class Modmail(commands.Cog):
         await ctx.send(content=f'Users who are currently blacklisted (username accurate at time of initial blacklist):', file=dpy_compatible_showtable_file)
 
         os.remove(showtable_filename_with_path)
+
+    @blacklist_show.error
+    async def blacklist_show_error(self, ctx: commands.Context, error):
+        if isinstance(error, commands.CommandInvokeError):
+            error = error.original
+        await ctx.send(embed=self.simple_embed(f'Something went wrong: {error}'))
+        print('Ignoring exception in command {}:'.format(
+            ctx.command), file=sys.stderr)
+        traceback.print_exception(
+            type(error), error, error.__traceback__, file=sys.stderr)
 
     @blacklist.command(name='remove')
     @check_if_moderator()
@@ -574,32 +600,6 @@ class Modmail(commands.Cog):
 
         await ctx.send(embed=mod_confirmed_unblacklist_embed)
         await user_to_unblacklist.send(embed=user_inform_unblacklist_embed)
-
-    @blacklist_add.error
-    async def blacklist_add_error(self, ctx: commands.Context, error):
-        if isinstance(error, commands.CommandInvokeError):
-            error = error.original
-        if isinstance(error, discord.Forbidden):
-            await ctx.send(embed=self.simple_embed(f'Note: Blacklisted user, but couldn\'t notify them– they have probably blocked the bot. ({error})'))
-        elif isinstance(error, commands.MemberNotFound):
-            await ctx.send(embed=self.simple_embed(f'Error: member not found. ({error})'))
-        else:
-            # All other errors not returned come here. And we can just print the default Traceback.
-            await ctx.send(embed=self.simple_embed(f'Something went wrong: {error}'))
-            print('Ignoring exception in command {}:'.format(
-                ctx.command), file=sys.stderr)
-            traceback.print_exception(
-                type(error), error, error.__traceback__, file=sys.stderr)
-
-    @blacklist_show.error
-    async def blacklist_show_error(self, ctx: commands.Context, error):
-        if isinstance(error, commands.CommandInvokeError):
-            error = error.original
-        await ctx.send(embed=self.simple_embed(f'Something went wrong: {error}'))
-        print('Ignoring exception in command {}:'.format(
-            ctx.command), file=sys.stderr)
-        traceback.print_exception(
-            type(error), error, error.__traceback__, file=sys.stderr)
 
     @blacklist_remove.error
     async def blacklist_remove_error(self, ctx: commands.Context, error):
