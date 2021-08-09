@@ -591,6 +591,16 @@ class Modmail(commands.Cog):
             traceback.print_exception(
                 type(error), error, error.__traceback__, file=sys.stderr)
 
+    @blacklist_show.error
+    async def blacklist_show_error(self, ctx: commands.Context, error):
+        if isinstance(error, commands.CommandInvokeError):
+            error = error.original
+        await ctx.send(embed=self.simple_embed(f'Something went wrong: {error}'))
+        print('Ignoring exception in command {}:'.format(
+            ctx.command), file=sys.stderr)
+        traceback.print_exception(
+            type(error), error, error.__traceback__, file=sys.stderr)
+
     @blacklist_remove.error
     async def blacklist_remove_error(self, ctx: commands.Context, error):
         if isinstance(error, commands.CommandInvokeError):
