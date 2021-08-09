@@ -4,8 +4,6 @@ todo:
 1 examine which messages are being pinned. are they the right ones? should it unpin at the end?
 1 make docstrings better
 1.5 commands to add moderators to moderator list (needs json– config file or something?)
-1 fix up file tree? idk if necessary. rename sans "cog"?
-1 add ping command
 
 notes/resources:
 https://realpython.com/documenting-python-code/
