@@ -67,11 +67,12 @@ class DevCommands(commands.Cog):
         This command provides the ability to reload an extension after making changes to its code,
         without relaunching the whole bot.
         cog_to_reload must be the file name of the extension, without file path or .py file extension.
+        Assumes that the cog is in the cogs/ folder.
         Not designed or tested for widespread use. Only responds to LonelyPenguin.
         """
 
         try:
-            self.bot.reload_extension(cog_to_reload)
+            self.bot.reload_extension(f'cogs.{cog_to_reload}')
             await ctx.send(f'Reloaded {cog_to_reload}!')
             print(f'\nReloaded extension {cog_to_reload}')
         except Exception as e:
