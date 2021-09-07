@@ -3,6 +3,7 @@ from discord.ext import commands
 import aiosqlite
 import asyncio
 import os
+import sys
 
 
 class DevCommands(commands.Cog):
@@ -121,6 +122,10 @@ class DevCommands(commands.Cog):
         except asyncio.TimeoutError:  # if 30 seconds pass without user confirming or canceling
             await ctx.send('Timed out, process cancelled.')
 
+    @commands.command(name="quit")
+    async def quit_bot(self, ctx: commands.Context):
+        await ctx.send("Quitting.")
+        sys.exit()
 
 def setup(bot: commands.Bot):
     """Add this cog to the bot."""
