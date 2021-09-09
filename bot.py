@@ -37,7 +37,7 @@ async def startup():
         await c.execute('SELECT * FROM blacklist')
         bot.blacklisted_users = await c.fetchall()
 
-        all_extensions = ['cogs.modmail', 'cogs.dev_cmds', 'cogs.slash_cmds', 'cogs.misc']
+        all_extensions = ['cogs.modmail', 'cogs.dev_cmds', 'cogs.slash_cmds', 'cogs.misc', 'cogs.blacklist']
 
         for extension in all_extensions:
             bot.load_extension(extension)
