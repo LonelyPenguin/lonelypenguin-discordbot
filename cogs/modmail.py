@@ -244,7 +244,7 @@ class Modmail(commands.Cog):
         """Listens for messages in modmail channels and calls relay_message to relay them to the relevant user."""
 
         try:
-            if message.guild is not None:  # if not in DM
+            if message.guild is not None and message.channel.category_id == modmail_category_id:  # ignore DMs (other listener) and guild messages outside modmail cat (reduce db requests)
 
                 c = await self.bot.conn.execute('SELECT * FROM activemodmails WHERE modmailchnlid=?', (message.channel.id, ))
                 my_row = await c.fetchone()
