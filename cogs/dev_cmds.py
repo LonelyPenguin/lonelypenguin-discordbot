@@ -3,7 +3,7 @@ from discord.ext import commands
 import aiosqlite
 import asyncio
 import os
-import sys
+from sys import exit
 
 
 class DevCommands(commands.Cog):
@@ -125,7 +125,7 @@ class DevCommands(commands.Cog):
     @commands.command(name="quit")
     async def quit_bot(self, ctx: commands.Context):
         await ctx.send("Quitting.")
-        sys.exit()
+        exit()
 
 def setup(bot: commands.Bot):
     """Add this cog to the bot."""

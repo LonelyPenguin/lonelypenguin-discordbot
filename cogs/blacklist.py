@@ -1,9 +1,9 @@
 import discord
 from discord.ext import commands
 import aiosqlite
-import traceback
+from traceback import print_exception
 import os
-import sys
+from sys import stderr
 from config.server_vars import moderator_ids
 
 
@@ -80,9 +80,9 @@ class Blacklist(commands.Cog):
             # All other errors not returned come here. And we can just print the default Traceback.
             await ctx.send(embed=self.simple_embed(f'Something went wrong: {error}'))
             print('Ignoring exception in command {}:'.format(
-                ctx.command), file=sys.stderr)
-            traceback.print_exception(
-                type(error), error, error.__traceback__, file=sys.stderr)
+                ctx.command), file=stderr)
+            print_exception(
+                type(error), error, error.__traceback__, file=stderr)
 
     @blacklist.command(name='show', aliases=['view'])
     @check_if_moderator()
@@ -115,9 +115,9 @@ class Blacklist(commands.Cog):
             error = error.original
         await ctx.send(embed=self.simple_embed(f'Something went wrong: {error}'))
         print('Ignoring exception in command {}:'.format(
-            ctx.command), file=sys.stderr)
-        traceback.print_exception(
-            type(error), error, error.__traceback__, file=sys.stderr)
+            ctx.command), file=stderr)
+        print_exception(
+            type(error), error, error.__traceback__, file=stderr)
 
     @blacklist.command(name='remove')
     @check_if_moderator()
@@ -160,9 +160,9 @@ class Blacklist(commands.Cog):
             # All other errors not returned come here. And we can just print the default Traceback.
             await ctx.send(embed=self.simple_embed(f'Something went wrong: {error}'))
             print('Ignoring exception in command {}:'.format(
-                ctx.command), file=sys.stderr)
-            traceback.print_exception(
-                type(error), error, error.__traceback__, file=sys.stderr)
+                ctx.command), file=stderr)
+            print_exception(
+                type(error), error, error.__traceback__, file=stderr)
     # endregion
 
 

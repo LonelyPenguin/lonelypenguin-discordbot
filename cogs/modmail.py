@@ -3,10 +3,10 @@ import discord
 import aiosqlite
 import asyncio
 import os
-import traceback
-import sys
-import textwrap
-import functools
+from traceback import print_exception
+from sys import stderr
+from textwrap import fill
+from functools import wraps
 
 from discord.ext import commands
 from config.server_vars import logs_channel_id, server_id, modmail_category_id, moderator_ids
@@ -59,7 +59,7 @@ class Modmail(commands.Cog):
         Listeners decorated with this function will not trigger on blacklisted users, bots, or commands.
         """
 
-        @functools.wraps(listener)
+        @wraps(listener)
         async def wrapper_listener_check(*args, **kwargs):
 
             self, message = args[0], args[1]
@@ -234,9 +234,9 @@ class Modmail(commands.Cog):
 
         except Exception as error:
             await message.channel.send(embed=self.simple_embed(f'Something went wrong: {error}'))
-            print('Ignoring exception in on_message listener:', file=sys.stderr)
-            traceback.print_exception(
-                type(error), error, error.__traceback__, file=sys.stderr)
+            print('Ignoring exception in on_message listener:', file=stderr)
+            print_exception(
+                type(error), error, error.__traceback__, file=stderr)
 
     @listener_check
     @commands.Cog.listener(name='on_message')
@@ -258,9 +258,9 @@ class Modmail(commands.Cog):
 
         except Exception as error:
             await message.channel.send(embed=self.simple_embed(f'Something went wrong: {error}'))
-            print('Ignoring exception in on_message listener:', file=sys.stderr)
-            traceback.print_exception(
-                type(error), error, error.__traceback__, file=sys.stderr)
+            print('Ignoring exception in on_message listener:', file=stderr)
+            print_exception(
+                type(error), error, error.__traceback__, file=stderr)
     # endregion
 
     # region modmail commands and errors
@@ -325,9 +325,9 @@ class Modmail(commands.Cog):
             # All other errors not returned come here. And we can just print the default Traceback.
             await ctx.send(embed=self.simple_embed(f'Something went wrong: {error}'))
         print('Ignoring exception in command {}:'.format(
-            ctx.command), file=sys.stderr)
-        traceback.print_exception(
-            type(error), error, error.__traceback__, file=sys.stderr)
+            ctx.command), file=stderr)
+        print_exception(
+            type(error), error, error.__traceback__, file=stderr)
 
     @modmail.command(name='close', aliases=['shutdown', 'finish', 'end'])
     @commands.cooldown(1, 300.0, commands.cooldowns.BucketType.channel)
@@ -364,7 +364,7 @@ class Modmail(commands.Cog):
 
                 embeds_if_any = ''
                 if message.embeds:
-                    embed_desc_list = [textwrap.fill(
+                    embed_desc_list = [fill(
                         embed.description) for embed in message.embeds]
                     embeds_if_any = '\nEmbed description(s):\n{}\n'.format(
                         ',\n\n'.join(embed_desc_list))
@@ -376,7 +376,7 @@ class Modmail(commands.Cog):
                     attachments_if_any = '\nAttachment URL(s):\n{}\n'.format(
                         ',\n'.join(attachment_url_list))
 
-                contentstr = f'Content:\n{textwrap.fill(message.content)}\n' if message.content else '[no message content]\n'
+                contentstr = f'Content:\n{fill(message.content)}\n' if message.content else '[no message content]\n'
 
                 log_txt_file.write(
                     f'{message.author.name}#{message.author.discriminator} ({message.author.id}) at {str(message.created_at)[:19]} UTC\n\n{contentstr}{embeds_if_any}{attachments_if_any}\n\n')
@@ -424,9 +424,9 @@ class Modmail(commands.Cog):
             # All other errors not returned come here. And we can just print the default Traceback.
             await ctx.send(embed=self.simple_embed(f'Something went wrong: {error}'))
             print('Ignoring exception in command {}:'.format(
-                ctx.command), file=sys.stderr)
-            traceback.print_exception(
-                type(error), error, error.__traceback__, file=sys.stderr)
+                ctx.command), file=stderr)
+            print_exception(
+                type(error), error, error.__traceback__, file=stderr)
 
     @modmail.command(name='reason', aliases=['topic', 'subject'])
     @commands.cooldown(2, 10.0, commands.cooldowns.BucketType.channel)
@@ -486,9 +486,9 @@ class Modmail(commands.Cog):
             # All other errors not returned come here. And we can just print the default Traceback.
             await ctx.send(embed=self.simple_embed(f'Something went wrong: {error}'))
             print('Ignoring exception in command {}:'.format(
-                ctx.command), file=sys.stderr)
-            traceback.print_exception(
-                type(error), error, error.__traceback__, file=sys.stderr)
+                ctx.command), file=stderr)
+            print_exception(
+                type(error), error, error.__traceback__, file=stderr)
     # endregion
 
 def setup(bot: commands.Bot):

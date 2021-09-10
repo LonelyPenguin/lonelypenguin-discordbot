@@ -1,9 +1,8 @@
 todo:
 
 1 make docstrings better
-1.5 commands to add moderators to moderator list (needs json– config file or something?)
+1.5 commands to add moderators to moderator list (needs json– config file or something?) (separate cog?)
 1.5 cmd to manually add a modmail
-0 make blacklist separate cog
 
 notes/resources:
 https://realpython.com/documenting-python-code/
