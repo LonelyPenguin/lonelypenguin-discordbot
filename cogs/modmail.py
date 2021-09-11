@@ -178,6 +178,14 @@ class Modmail(commands.Cog):
             await messagectx.add_reaction('✅')
         except discord.Forbidden as error:
             await messagectx.channel.send(embed=self.simple_embed(f"Error: Couldn't send a message to this user; they have probably blocked the bot. Try DMing them directly. (Alternatively, bot can't add a reaction to your message.) ({error})"))
+        except AttributeError as error:
+            await messagectx.channel.send(embed=self.simple_embed(f"Error: Bot probably doesn't have access to that user or that channel. ({error})"))
+        except Exception as error:
+            await messagectx.channel.send(embed=self.simple_embed(f'Something went wrong: {error}'))
+            # All other errors not returned come here. And we can just print the default Traceback.
+            print('Ignoring exception in function relay_message:', file=stderr)
+            print_exception(
+                type(error), error, error.__traceback__, file=stderr)
 
     # endregion
 
