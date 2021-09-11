@@ -2,7 +2,11 @@ todo:
 
 1 make docstrings better
 1.5 commands to add moderators to moderator list (needs json– config file or something?) (separate cog?)
-1.5 cmd to manually add a modmail
+1 change to StringIO for logs etc
+0 typehint aiosqlite stuff
+0 update donttriggeronmessage
+1 add view_reason command
+2 make task that checks for duplicate/leftover(?) db entries every x period of time
 
 notes/resources:
 https://realpython.com/documenting-python-code/
