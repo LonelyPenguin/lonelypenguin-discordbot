@@ -92,9 +92,8 @@ class DevCommands(commands.Cog):
         c = await self.bot.conn.cursor()
         await c.execute('SELECT * FROM activemodmails WHERE userid=?', (user_id,))
         my_rows = await c.fetchall()
-        my_str = '```userid, modmailchnlid, reason (log not shown, use showdb)\n\n'
-        for row in my_rows:
-            my_str += f'({row[0]}, {row[1]}, {row[2]})\n'
+        my_str = '```userid, modmailchnlid, reason\n\n'
+        my_str += '\n'.join([str(row) for row in my_rows])
         my_str += '```'
 
         confirm_message = await ctx.send(f'Are you sure you want to delete these entries (tied to <@{user_id}>) from the database? **This will not create logs or notify anyone involved.** It also will not delete the channel. Be certain. \n\n{my_str}')
