@@ -35,8 +35,6 @@ class Modmail(commands.Cog):
         self.embed_details = {'author name': 'Servername Modmail',
                               'author icon': 'https://cdn.discordapp.com/attachments/743536411369799804/854865953083228181/mail_icon.png',
                               'footer': 'Use ;modmail close to close this modmail, and ;modmail reason to change its reason.'}
-        self.dont_trigger_onmessage = [';modmail', ';reloadext', ';showdb',
-                                       ';deletemanychannels', ';reload', ';reloadcog', ';blacklist']
 
     def cog_check(self, ctx: commands.Context):
         """Ensures that all commands in this cog only trigger when they are meant to.
@@ -63,8 +61,9 @@ class Modmail(commands.Cog):
         async def wrapper_listener_check(*args, **kwargs):
 
             self, message = args[0], args[1]
+            message_context = await self.bot.get_context(message)
 
-            if message.author.bot or any([message.content.startswith(x) for x in self.dont_trigger_onmessage]) or message.author.id in [each_row[1] for each_row in self.bot.blacklisted_users]:
+            if message.author.bot or message_context.command or message.author.id in [each_row[1] for each_row in self.bot.blacklisted_users]:
                 return
 
             await listener(*args, **kwargs)
