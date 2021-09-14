@@ -2,8 +2,9 @@ import discord
 from discord.ext import commands
 import aiosqlite
 import asyncio
-import os
+from io import StringIO
 from sys import exit
+from os import linesep
 
 
 class DevCommands(commands.Cog):
@@ -46,19 +47,15 @@ class DevCommands(commands.Cog):
         full_activemodmails_table = await c.fetchall()
         await self.bot.conn.commit()
 
-        showtable_filename = f'{ctx.message.created_at}-contents-of-activemodmails.txt'
+        table_contents = StringIO(
+            f'userid, modmailchnlid, reason\n\n{linesep.join([str(my_row) for my_row in full_activemodmails_table])}')
 
-        with open(showtable_filename, 'w') as showtable_txt_file:
-            showtable_txt_file.write('userid, modmailchnlid, reason\n\n')
-            for myrow in full_activemodmails_table:
-                showtable_txt_file.write(f'{myrow}\n')
-            showtable_filename_with_path = showtable_txt_file.name
+        table_filename = f'{ctx.message.created_at}-activemodmails.txt'
 
-        dpy_compatible_showtable_file = discord.File(
-            showtable_filename_with_path)
-        await ctx.send(content=f'Current contents of activemodmails table:', file=dpy_compatible_showtable_file)
+        dpy_table_file = discord.File(fp=table_contents, filename=table_filename)
+        table_contents.close()
 
-        os.remove(showtable_filename_with_path)
+        await ctx.send(content=f'Current contents of activemodmails table:', file=dpy_table_file)
 
     @commands.command(aliases=['reload', 'reloadcog'])
     async def reloadext(self, ctx: commands.Context, cog_to_reload: str):
@@ -125,6 +122,7 @@ class DevCommands(commands.Cog):
     async def quit_bot(self, ctx: commands.Context):
         await ctx.send("Quitting.")
         exit()
+
 
 def setup(bot: commands.Bot):
     """Add this cog to the bot."""

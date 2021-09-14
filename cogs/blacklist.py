@@ -2,7 +2,8 @@ import discord
 from discord.ext import commands
 import aiosqlite
 from traceback import print_exception
-import os
+from io import StringIO
+
 from sys import stderr
 from config.server_vars import moderator_ids
 
@@ -95,19 +96,19 @@ class Blacklist(commands.Cog):
         full_blacklist_table = await c.fetchall()
         await self.bot.conn.commit()
 
-        showtable_filename = f'{str(ctx.message.created_at)[:19]}-currently-blacklisted-users.txt'
+        blacklist_entries = StringIO()
+        blacklist_entries.write('timestamp (UTC), userid, username\n\n')
+        for myrow in full_blacklist_table:
+            blacklist_entries.write(f'{myrow}\n')
 
-        with open(showtable_filename, 'w') as showtable_txt_file:
-            showtable_txt_file.write('timestamp (UTC), userid, username\n\n')
-            for myrow in full_blacklist_table:
-                showtable_txt_file.write(f'{myrow}\n')
-            showtable_filename_with_path = showtable_txt_file.name
+        blacklist_entries.seek(0)
+        blacklist_filename = f'{str(ctx.message.created_at)[:19]}-currently-blacklisted-users.txt'
 
-        dpy_compatible_showtable_file = discord.File(
-            showtable_filename_with_path)
+        dpy_compatible_showtable_file = discord.File(fp=blacklist_entries, filename=blacklist_filename)
+        blacklist_entries.close()
+
         await ctx.send(content=f'Users who are currently blacklisted (username accurate at time of initial blacklist):', file=dpy_compatible_showtable_file)
 
-        os.remove(showtable_filename_with_path)
 
     @blacklist_show.error
     async def blacklist_show_error(self, ctx: commands.Context, error):

@@ -2,7 +2,7 @@
 import discord
 import aiosqlite
 import asyncio
-import os
+from io import StringIO
 from traceback import print_exception
 from sys import stderr
 from textwrap import fill
@@ -358,40 +358,42 @@ class Modmail(commands.Cog):
         modmail_channel = self.bot.get_channel(my_row[1])
         modmail_user = self.bot.get_user(my_row[0])
         modmail_reason = my_row[2]
-        log_filename = f'log-{modmail_user.name}-{modmail_reason}-{str(ctx.message.created_at)[:10]}.txt'
 
         await ctx.send(embed=self.simple_embed('Creating logs and closing modmail...'))
 
-        with open(log_filename, 'w') as log_txt_file:
+        modmail_log = StringIO()
 
-            async for message in modmail_channel.history(limit=None, oldest_first=True):
+        async for message in modmail_channel.history(limit=None, oldest_first=True):
 
-                if message.is_system():
-                    continue
+            if message.is_system():
+                continue
 
-                embeds_if_any = ''
-                if message.embeds:
-                    embed_desc_list = [fill(
-                        embed.description) for embed in message.embeds]
-                    embeds_if_any = '\nEmbed description(s):\n{}\n'.format(
-                        ',\n\n'.join(embed_desc_list))
+            embeds_if_any = ''
+            if message.embeds:
+                embed_desc_list = [fill(
+                    embed.description) for embed in message.embeds]
+                embeds_if_any = '\nEmbed description(s):\n{}\n'.format(
+                    ',\n\n'.join(embed_desc_list))
 
-                attachments_if_any = ''
-                if message.attachments:
-                    attachment_url_list = [
-                        attachment.url for attachment in message.attachments]
-                    attachments_if_any = '\nAttachment URL(s):\n{}\n'.format(
-                        ',\n'.join(attachment_url_list))
+            attachments_if_any = ''
+            if message.attachments:
+                attachment_url_list = [
+                    attachment.url for attachment in message.attachments]
+                attachments_if_any = '\nAttachment URL(s):\n{}\n'.format(
+                    ',\n'.join(attachment_url_list))
 
-                contentstr = f'Content:\n{fill(message.content)}\n' if message.content else '[no message content]\n'
+            contentstr = f'Content:\n{fill(message.content)}\n' if message.content else '[no message content]\n'
 
-                log_txt_file.write(
-                    f'{message.author.name}#{message.author.discriminator} ({message.author.id}) at {str(message.created_at)[:19]} UTC\n\n{contentstr}{embeds_if_any}{attachments_if_any}\n\n')
+            modmail_log.write(
+                f'{message.author.name}#{message.author.discriminator} ({message.author.id}) at {str(message.created_at)[:19]} UTC\n\n{contentstr}{embeds_if_any}{attachments_if_any}\n\n')
 
-            log_filename_with_path = log_txt_file.name
+        modmail_log.seek(0)
+        log_filename = f'log-{modmail_user.name}-{modmail_reason}-{str(ctx.message.created_at)[:10]}.txt'
 
         # send to moderators' logs:
-        dpy_compatible_log = discord.File(log_filename_with_path)
+        dpy_compatible_log = discord.File(fp=modmail_log, filename=log_filename)
+        modmail_log.close()
+
         mod_modmail_closed_embed = discord.Embed(description=f'Modmail with {modmail_user.mention} closed by {ctx.author.name}. Modmail reason was "{modmail_reason}".').set_author(
             name=self.embed_details['author name'], icon_url=self.embed_details['author icon']).set_footer(text='Use ;modmail open <user> [reason] to open another modmail.')
 
@@ -401,14 +403,14 @@ class Modmail(commands.Cog):
         await self.bot.conn.commit()
 
         # send to the user:
-        dpy_compatible_log = discord.File(log_filename_with_path)
-        os.remove(log_filename_with_path)
+        dpy_compatible_log = discord.File(fp=modmail_log, filename=log_filename)
 
         # single quotes used despite apostrophes due to double quotes elsewhere in string
         user_modmail_closed_embed = discord.Embed(description=f'Modmail closed by {ctx.author.name}. At time of closure, the modmail\'s reason was "{modmail_reason}".').set_author(
             name=self.embed_details['author name'], icon_url=self.embed_details['author icon']).set_footer(text='Send another message to open a new modmail.')
         await modmail_user.send(embed=user_modmail_closed_embed)
 
+        modmail_log.close()
         await modmail_channel.delete()
 
     @closemodmail.error
