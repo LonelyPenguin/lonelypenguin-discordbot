@@ -3,9 +3,7 @@ from discord.ext import commands
 import aiosqlite
 from traceback import print_exception
 from io import StringIO
-
 from sys import stderr
-from config.server_vars import moderator_ids
 
 
 class Blacklist(commands.Cog):
@@ -21,7 +19,7 @@ class Blacklist(commands.Cog):
         """Commands with this check will only execute for non-blacklisted moderators."""
 
         def predicate(ctx):
-            return ctx.author.id in moderator_ids
+            return ctx.author.id in ctx.bot.moderator_ids
 
         return commands.check(predicate)
 

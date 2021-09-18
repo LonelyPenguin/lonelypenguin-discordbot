@@ -9,7 +9,6 @@ from textwrap import fill
 from functools import wraps
 
 from discord.ext import commands
-from config.server_vars import logs_channel_id, server_id, modmail_category_id, moderator_ids
 from views import Confirm
 # endregion
 
@@ -42,13 +41,13 @@ class Modmail(commands.Cog):
         To successfully trigger a command, user must not be blacklisted from the bot, or must be LonelyPenguin or a moderator.
         """
 
-        return ctx.author.id not in [each_row[1] for each_row in self.bot.blacklisted_users] or ctx.author.id == 305704400041803776 or ctx.author.id in moderator_ids
+        return ctx.author.id not in [each_row[1] for each_row in self.bot.blacklisted_users] or ctx.author.id == 305704400041803776 or ctx.author.id in self.bot.moderator_ids
 
     def check_if_moderator():
         """Commands with this check will only execute for moderators."""
 
-        def predicate(ctx):
-            return ctx.author.id in moderator_ids
+        def predicate(ctx: commands.Context):
+            return ctx.author.id in ctx.bot.moderator_ids
         return commands.check(predicate)
 
     def listener_check(listener):
@@ -113,8 +112,8 @@ class Modmail(commands.Cog):
                 await messagectx.channel.send(message_content)
             return
 
-        my_guild = self.bot.get_guild(server_id)
-        modmail_private_cat = my_guild.get_channel(modmail_category_id)
+        my_guild = self.bot.get_guild(self.bot.server_id)
+        modmail_private_cat = my_guild.get_channel(self.bot.modmail_category_id)
         modmail_channel = await modmail_private_cat.create_text_channel(f'{modmail_user.name}{modmail_user.discriminator}')
         new_row = (modmail_user.id, modmail_channel.id, modmailreason)
         c = await self.bot.conn.cursor()
@@ -251,7 +250,7 @@ class Modmail(commands.Cog):
         """Listens for messages in modmail channels and calls relay_message to relay them to the relevant user."""
 
         try:
-            if message.guild is not None and message.channel.category_id == modmail_category_id:  # ignore DMs (other listener) and guild messages outside modmail cat (reduce db requests)
+            if message.guild is not None and message.channel.category_id == self.bot.modmail_category_id:  # ignore DMs (other listener) and guild messages outside modmail cat (reduce db requests)
 
                 c = await self.bot.conn.execute('SELECT * FROM activemodmails WHERE modmailchnlid=?', (message.channel.id, ))
                 my_row = await c.fetchone()
@@ -291,7 +290,7 @@ class Modmail(commands.Cog):
         if something goes wrong, contact LonelyPenguin#9931.
         Maximum length of reason is 72 characters."""
 
-        if ctx.guild != self.bot.get_guild(server_id):
+        if ctx.guild != self.bot.get_guild(self.bot.server_id):
             await ctx.send(embed=self.simple_embed('You must be in the server to use this command.'))
             return
 
@@ -354,7 +353,7 @@ class Modmail(commands.Cog):
 
         my_row = await c.fetchone()
 
-        logs_channel = self.bot.get_channel(logs_channel_id)
+        logs_channel = self.bot.get_channel(self.bot.logs_channel_id)
         modmail_channel = self.bot.get_channel(my_row[1])
         modmail_user = self.bot.get_user(my_row[0])
         modmail_reason = my_row[2]

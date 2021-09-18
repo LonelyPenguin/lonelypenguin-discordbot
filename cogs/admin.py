@@ -3,7 +3,6 @@ from discord.ext import commands
 import aiosqlite
 from sys import stderr
 from traceback import print_exception
-from config.server_vars import moderator_ids
 
 
 class Admin(commands.Cog):
@@ -13,7 +12,7 @@ class Admin(commands.Cog):
         self.bot = bot
 
     def cog_check(self, ctx: commands.Context):
-        return ctx.author.id in moderator_ids or ctx.author.id == 305704400041803776
+        return ctx.author.id in self.bot.moderator_ids or ctx.author.id == 305704400041803776
 
     def simple_embed(self, desc: str):
         """Shortcut for creating an embed with only a description."""
