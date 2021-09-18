@@ -9,6 +9,7 @@ from textwrap import fill
 from functools import wraps
 
 from discord.ext import commands
+from discord.utils import resolve_annotation
 from views import Confirm
 # endregion
 
@@ -113,7 +114,8 @@ class Modmail(commands.Cog):
             return
 
         my_guild = self.bot.get_guild(self.bot.server_id)
-        modmail_private_cat = my_guild.get_channel(self.bot.modmail_category_id)
+        modmail_private_cat = my_guild.get_channel(
+            self.bot.modmail_category_id)
         modmail_channel = await modmail_private_cat.create_text_channel(f'{modmail_user.name}{modmail_user.discriminator}')
         new_row = (modmail_user.id, modmail_channel.id, modmailreason)
         c = await self.bot.conn.cursor()
@@ -131,11 +133,11 @@ class Modmail(commands.Cog):
 
         else:
             # single quotes used despite apostrophes due to double quotes elsewhere in string
-            mod_modmail_opened_embed = discord.Embed(description=f'Modmail opened by moderator {messagectx.author.mention} to talk to user {modmail_user.mention}. The reason for this modmail is "{modmailreason}".\n\nA ✅ on your message means it\'s been successfully relayed.\n\n**{messagectx.author.name}\'s initial message**:\n\n{message_content[:1639]}').set_author(
+            mod_modmail_opened_embed = discord.Embed(description=f"Modmail opened by moderator {messagectx.author.mention} to talk to user {modmail_user.mention}. The reason for this modmail is `{modmailreason}`.\n\nA ✅ on your message means it's been successfully relayed.\n\n**{messagectx.author.name}'s initial message**:\n\n{message_content[:1639]}").set_author(
                 name=self.embed_details['author name'], icon_url=self.embed_details['author icon']).set_footer(text=self.embed_details['footer'])
 
             # single quotes used despite apostrophes due to double quotes elsewhere in string
-            user_modmail_opened_embed = discord.Embed(description=f'A moderator on KotLC Chats opened a new modmail to speak with you (see their message below). Send a message in this DM to respond. The reason for this modmail is "{modmailreason}". \n\nAll messages sent will be relayed back and forth between you and the moderators. A ✅ on your message means it\'s been successfully relayed, and a ✂️ means it has been cut to stay within the character limit.').set_author(
+            user_modmail_opened_embed = discord.Embed(description=f"A moderator on KotLC Chats opened a new modmail to speak with you (see their message below). Send a message in this DM to respond. The reason for this modmail is `{modmailreason}`. \n\nAll messages sent will be relayed back and forth between you and the moderators. A ✅ on your message means it's been successfully relayed, and a ✂️ means it has been cut to stay within the character limit.").set_author(
                 name=self.embed_details['author name'], icon_url=self.embed_details['author icon']).set_footer(text=self.embed_details['footer'])
 
             relay_first_message_to = modmail_user
@@ -148,7 +150,6 @@ class Modmail(commands.Cog):
             await relay_first_message_to.send(f'**{messagectx.author.name}**: {message_content}', files=discordable_files)
         else:
             await relay_first_message_to.send(f'**{messagectx.author.name}**: {message_content}')
-
 
     async def relay_message(self, messagectx: discord.Message, row: tuple, from_user: bool):
         """Relays a message from a DMing user to moderators, or vice-versa.
@@ -250,7 +251,8 @@ class Modmail(commands.Cog):
         """Listens for messages in modmail channels and calls relay_message to relay them to the relevant user."""
 
         try:
-            if message.guild is not None and message.channel.category_id == self.bot.modmail_category_id:  # ignore DMs (other listener) and guild messages outside modmail cat (reduce db requests)
+            # ignore DMs (other listener) and guild messages outside modmail cat (reduce db requests)
+            if message.guild is not None and message.channel.category_id == self.bot.modmail_category_id:
 
                 c = await self.bot.conn.execute('SELECT * FROM activemodmails WHERE modmailchnlid=?', (message.channel.id, ))
                 my_row = await c.fetchone()
@@ -291,12 +293,14 @@ class Modmail(commands.Cog):
         Maximum length of reason is 72 characters."""
 
         if ctx.guild != self.bot.get_guild(self.bot.server_id):
-            await ctx.send(embed=self.simple_embed('You must be in the server to use this command.'))
+            await ctx.send(embed=self.simple_embed('You must be in the server to use this command.'), delete_after=5.0)
+            await ctx.message.delete(delay=4.75)
             return
 
         c = await self.bot.conn.execute('SELECT * FROM activemodmails WHERE modmailchnlid=?', (ctx.channel.id,))
         if await c.fetchone() is not None:
-            await ctx.send(embed=self.simple_embed('Error: you are currently in a modmail. Run this command in a different channel (for privacy).'))
+            await ctx.send(embed=self.simple_embed('Error: you are currently in a modmail. Run this command in a different channel (for privacy).'), delete_after=5.0)
+            await ctx.message.delete(delay=4.75)
             return
 
         initialize_question_embed = discord.Embed(description=f'What message should I DM to {open_modmail_with_user.mention} to initiate this modmail?').set_author(
@@ -392,10 +396,11 @@ class Modmail(commands.Cog):
         log_filename = f'log-{modmail_user.name}-{modmail_reason}-{str(ctx.message.created_at)[:10]}.txt'
 
         # send to moderators' logs:
-        dpy_compatible_log = discord.File(fp=modmail_log, filename=log_filename)
+        dpy_compatible_log = discord.File(
+            fp=modmail_log, filename=log_filename)
         modmail_log.close()
 
-        mod_modmail_closed_embed = discord.Embed(description=f'Modmail with {modmail_user.mention} closed by {ctx.author.name}. Modmail reason was "{modmail_reason}".').set_author(
+        mod_modmail_closed_embed = discord.Embed(description=f'Modmail with {modmail_user.mention} closed by {ctx.author.name}. Modmail reason was `{modmail_reason}`.').set_author(
             name=self.embed_details['author name'], icon_url=self.embed_details['author icon']).set_footer(text='Use ;modmail open <user> [reason] to open another modmail.')
 
         await logs_channel.send(embed=mod_modmail_closed_embed)
@@ -404,10 +409,11 @@ class Modmail(commands.Cog):
         await self.bot.conn.commit()
 
         # send to the user:
-        dpy_compatible_log = discord.File(fp=modmail_log, filename=log_filename)
+        dpy_compatible_log = discord.File(
+            fp=modmail_log, filename=log_filename)
 
         # single quotes used despite apostrophes due to double quotes elsewhere in string
-        user_modmail_closed_embed = discord.Embed(description=f'Modmail closed by {ctx.author.name}. At time of closure, the modmail\'s reason was "{modmail_reason}".').set_author(
+        user_modmail_closed_embed = discord.Embed(description=f"Modmail closed by {ctx.author.name}. At time of closure, the modmail's reason was `{modmail_reason}`.").set_author(
             name=self.embed_details['author name'], icon_url=self.embed_details['author icon']).set_footer(text='Send another message to open a new modmail.')
         await modmail_user.send(embed=user_modmail_closed_embed)
 
@@ -440,16 +446,32 @@ class Modmail(commands.Cog):
 
     @modmail.command(name='reason', aliases=['topic', 'subject'])
     @commands.cooldown(2, 10.0, commands.cooldowns.BucketType.channel)
-    async def modmailreason(self, ctx: commands.Context, *, reason: str):
-        """Set a new reason for an open modmail.
+    async def modmailreason(self, ctx: commands.Context, *, reason: str = None):
+        """View current reason or set a new reason for an open modmail.
         Must be used in the channel/DM attached to the modmail.
         Overwrites previous reasons, but reason changes are logged.
         A modmail's latest reason is given upon closure.
         Moderators can optionally set a reason for a modmail when opening one with ;modmail open.
-        Syntax: ;modmail reason <new reason>."""
+        Syntax: ;modmail reason [new reason]."""
+
+        if not reason:
+
+            if ctx.guild is None:
+                c = await self.bot.conn.execute('SELECT * FROM activemodmails WHERE userid=?', (ctx.author.id,))
+            else:
+                c = await self.bot.conn.execute('SELECT * FROM activemodmails WHERE modmailchnlid=?', (ctx.channel.id,))
+
+            my_row = await c.fetchone()
+            reason = my_row[2]
+
+            view_reason_embed = discord.Embed(description=f"This modmail's reason is currently `{reason}`.").set_author(
+                name=self.embed_details['author name'], icon_url=self.embed_details['author icon']).set_footer(text='Use ;modmail reason <reason> to change the reason of this modmail.')
+
+            await ctx.send(embed=view_reason_embed)
+            return
 
         reason = reason[:71]
-        update_notice_str = f'{ctx.author.name}#{ctx.author.discriminator} set the modmail topic/reason to "{reason}"'
+        update_notice_str = f'{ctx.author.name}#{ctx.author.discriminator} set the modmail topic/reason to `{reason}`'
         update_notice_embed = discord.Embed(description=update_notice_str).set_author(
             name=self.embed_details['author name'], icon_url=self.embed_details['author icon']).set_footer(text=self.embed_details['footer'])
 
@@ -500,6 +522,7 @@ class Modmail(commands.Cog):
             print_exception(
                 type(error), error, error.__traceback__, file=stderr)
     # endregion
+
 
 def setup(bot: commands.Bot):
     bot.add_cog(Modmail(bot))
