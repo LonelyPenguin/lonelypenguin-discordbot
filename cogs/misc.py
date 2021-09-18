@@ -8,6 +8,9 @@ class Misc(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
+    def cog_check(self, ctx: commands.Context):
+        return ctx.author.id not in [each_row[1] for each_row in self.bot.blacklisted_users] or ctx.author.id == 305704400041803776 or ctx.author.id in self.bot.moderator_ids
+
     @commands.command()
     async def ping(self, ctx: commands.Context):
         await ctx.send(f'Pong! Bot latency: {round(self.bot.latency * 1000, 2)} milliseconds.')

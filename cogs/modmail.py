@@ -325,6 +325,8 @@ class Modmail(commands.Cog):
         elif isinstance(error, discord.HTTPException):
             if error.code == 50035:
                 await ctx.send(embed=self.simple_embed(f'Error: Your message or reason was too long to send. If a modmail channel is open, please use it as-is and send your message again (but shorter). Otherwise, run this command again with a shorter message. ({error})'))
+            elif error.code == 50007:
+                await ctx.send(embed=self.simple_embed(f"Error: Haha, very funny. A bot cannot DM another bot. ({error})"))
         elif isinstance(error, commands.MemberNotFound):
             await ctx.send(embed=self.simple_embed(f'Error: member not found. ({error})'))
         else:
