@@ -15,13 +15,9 @@ class Blacklist(commands.Cog):
                               'author icon': 'https://cdn.discordapp.com/attachments/743536411369799804/854865953083228181/mail_icon.png',
                               'footer': 'Use ;modmail close to close this modmail, and ;modmail reason to change its reason.'}
 
-    def check_if_moderator():
-        """Commands with this check will only execute for non-blacklisted moderators."""
+    def cog_check(self, ctx: commands.Context):
 
-        def predicate(ctx):
-            return ctx.author.id in ctx.bot.moderator_ids
-
-        return commands.check(predicate)
+        return ctx.author.id not in [each_row[1] for each_row in self.bot.blacklisted_users] or ctx.author.id == 305704400041803776 or ctx.author.id in self.bot.moderator_ids
 
     def simple_embed(self, desc: str):
         """Shortcut for creating an embed with only a description."""
@@ -31,14 +27,12 @@ class Blacklist(commands.Cog):
 
 # region blacklist commands and errors
     @commands.group()
-    @check_if_moderator()
     async def blacklist(self, ctx: commands.Context):
         "Commands to prevent certain users from using the modmail bot (e.g. if they're spamming)."
         if not ctx.invoked_subcommand:
             await ctx.send(embed=self.simple_embed('Run `;help blacklist` for details, or `;blacklist show` to view the current blacklist.'))
 
     @blacklist.command(name='add')
-    @check_if_moderator()
     async def blacklist_add(self, ctx: commands.Context, user_to_blacklist: discord.Member):
         """Adds a user to the blacklist (prevents them from using the bot).
 
@@ -75,6 +69,8 @@ class Blacklist(commands.Cog):
             await ctx.send(embed=self.simple_embed(f"Note: Blacklisted user, but couldn't notify them– they have probably blocked the bot. ({error})"))
         elif isinstance(error, commands.MemberNotFound):
             await ctx.send(embed=self.simple_embed(f'Error: member not found. ({error})'))
+        elif isinstance(error, commands.CheckFailure):
+            await ctx.send(embed=self.simple_embed('You may not use this command.'))
         else:
             # All other errors not returned come here. And we can just print the default Traceback.
             await ctx.send(embed=self.simple_embed(f'Something went wrong: {error}'))
@@ -84,7 +80,6 @@ class Blacklist(commands.Cog):
                 type(error), error, error.__traceback__, file=stderr)
 
     @blacklist.command(name='show', aliases=['view'])
-    @check_if_moderator()
     async def blacklist_show(self, ctx: commands.Context):
         """Shows the current state of the blacklist (who's on it and when they were blacklisted).
 
@@ -107,19 +102,20 @@ class Blacklist(commands.Cog):
 
         await ctx.send(content=f'Users who are currently blacklisted (username accurate at time of initial blacklist):', file=dpy_compatible_showtable_file)
 
-
     @blacklist_show.error
     async def blacklist_show_error(self, ctx: commands.Context, error):
         if isinstance(error, commands.CommandInvokeError):
             error = error.original
-        await ctx.send(embed=self.simple_embed(f'Something went wrong: {error}'))
-        print('Ignoring exception in command {}:'.format(
-            ctx.command), file=stderr)
-        print_exception(
-            type(error), error, error.__traceback__, file=stderr)
+        if isinstance(error, commands.CheckFailure):
+            await ctx.send(embed=self.simple_embed('You may not use this command.'))
+        else:
+            await ctx.send(embed=self.simple_embed(f'Something went wrong: {error}'))
+            print('Ignoring exception in command {}:'.format(
+                ctx.command), file=stderr)
+            print_exception(
+                type(error), error, error.__traceback__, file=stderr)
 
     @blacklist.command(name='remove')
-    @check_if_moderator()
     async def blacklist_remove(self, ctx: commands.Context, user_to_unblacklist: discord.Member):
         """Unblacklists a user, allowing them to make use of the bot again.
 
@@ -153,6 +149,8 @@ class Blacklist(commands.Cog):
             error = error.original
         if isinstance(error, discord.Forbidden):
             await ctx.send(embed=self.simple_embed(f"Note: Unblacklisted user, but but couldn't notify them– they have probably blocked the bot. ({error})"))
+        elif isinstance(error, commands.CheckFailure):
+            await ctx.send(embed=self.simple_embed('You may not use this command.'))
         elif isinstance(error, commands.MemberNotFound):
             await ctx.send(embed=self.simple_embed(f'Error: member not found. ({error})'))
         else:

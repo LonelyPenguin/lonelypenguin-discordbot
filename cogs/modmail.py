@@ -333,6 +333,8 @@ class Modmail(commands.Cog):
                 await ctx.send(embed=self.simple_embed(f"Error: Haha, very funny. A bot cannot DM another bot. ({error})"))
         elif isinstance(error, commands.MemberNotFound):
             await ctx.send(embed=self.simple_embed(f'Error: member not found. ({error})'))
+        elif isinstance(error, commands.CheckFailure):
+            await ctx.send(embed=self.simple_embed('You may not use this command.'))
         else:
             # All other errors not returned come here. And we can just print the default Traceback.
             await ctx.send(embed=self.simple_embed(f'Something went wrong: {error}'))
