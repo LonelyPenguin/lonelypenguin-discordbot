@@ -17,7 +17,7 @@ class Blacklist(commands.Cog):
 
     def cog_check(self, ctx: commands.Context):
 
-        return ctx.author.id not in [each_row[1] for each_row in self.bot.blacklisted_users] or ctx.author.id == 305704400041803776 or ctx.author.id in self.bot.moderator_ids
+        return ctx.author.id not in [each_row[1] for each_row in self.bot.blacklisted_users] and ctx.author.id in self.bot.moderator_ids or ctx.author.id == 305704400041803776
 
     def simple_embed(self, desc: str):
         """Shortcut for creating an embed with only a description."""
