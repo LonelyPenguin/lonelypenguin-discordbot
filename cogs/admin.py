@@ -5,7 +5,7 @@ import json
 from sys import stderr
 from traceback import print_exception
 
-
+ 
 class Admin(commands.Cog):
     """Commands to manage the administration of the bot itself, which aren't as sensitive as the development commands."""
 
