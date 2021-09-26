@@ -400,7 +400,8 @@ class Modmail(commands.Cog):
             name=self.embed_details['author name'], icon_url=self.embed_details['author icon']).set_footer(text='Use ;modmail open <user> [reason] to open another modmail.')
 
         await logs_channel.send(embed=mod_modmail_closed_embed)
-        await logs_channel.send(content='Logs:', file=dpy_compatible_log)
+        await logs_channel.send(file=dpy_compatible_log)
+
         await c.execute('DELETE FROM activemodmails WHERE modmailchnlid=?', (my_row[1],))
         await self.bot.conn.commit()
 
