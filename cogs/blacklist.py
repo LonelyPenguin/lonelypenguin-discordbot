@@ -19,18 +19,12 @@ class Blacklist(commands.Cog):
 
         return ctx.author.id not in [each_row[1] for each_row in self.bot.blacklisted_users] and ctx.author.id in self.bot.moderator_ids or ctx.author.id == 305704400041803776
 
-    def simple_embed(self, desc: str):
-        """Shortcut for creating an embed with only a description."""
-
-        my_embed = discord.Embed(description=desc)
-        return my_embed
-
 # region blacklist commands and errors
     @commands.group()
     async def blacklist(self, ctx: commands.Context):
         "Commands to prevent certain users from using the modmail bot (e.g. if they're spamming)."
         if not ctx.invoked_subcommand:
-            await ctx.send(embed=self.simple_embed('Run `;help blacklist` for details, or `;blacklist show` to view the current blacklist.'))
+            await ctx.send(embed=self.bot.simple_embed('Run `;help blacklist` for details, or `;blacklist show` to view the current blacklist.'))
 
     @blacklist.command(name='add')
     async def blacklist_add(self, ctx: commands.Context, user_to_blacklist: discord.Member):
@@ -44,7 +38,7 @@ class Blacklist(commands.Cog):
         await c.execute('SELECT * FROM blacklist WHERE userid=?', (user_to_blacklist.id,))
 
         if await c.fetchone() is not None:
-            await ctx.send(embed=self.simple_embed('User is already blacklisted.'))
+            await ctx.send(embed=self.bot.simple_embed('User is already blacklisted.'))
             return
 
         await c.execute('INSERT INTO blacklist VALUES (?,?,?)', (str(ctx.message.created_at)[:19], user_to_blacklist.id, user_to_blacklist.name))
@@ -66,14 +60,14 @@ class Blacklist(commands.Cog):
         if isinstance(error, commands.CommandInvokeError):
             error = error.original
         if isinstance(error, discord.Forbidden):
-            await ctx.send(embed=self.simple_embed(f"Note: Blacklisted user, but couldn't notify them– they have probably blocked the bot. ({error})"))
+            await ctx.send(embed=self.bot.simple_embed(f"Note: Blacklisted user, but couldn't notify them– they have probably blocked the bot. ({error})"))
         elif isinstance(error, commands.MemberNotFound):
-            await ctx.send(embed=self.simple_embed(f'Error: member not found. ({error})'))
+            await ctx.send(embed=self.bot.simple_embed(f'Error: member not found. ({error})'))
         elif isinstance(error, commands.CheckFailure):
-            await ctx.send(embed=self.simple_embed('You may not use this command.'))
+            await ctx.send(embed=self.bot.simple_embed('You may not use this command.'))
         else:
             # All other errors not returned come here. And we can just print the default Traceback.
-            await ctx.send(embed=self.simple_embed(f'Something went wrong: {error}'))
+            await ctx.send(embed=self.bot.simple_embed(f'Something went wrong: {error}'))
             print('Ignoring exception in command {}:'.format(
                 ctx.command), file=stderr)
             print_exception(
@@ -107,9 +101,9 @@ class Blacklist(commands.Cog):
         if isinstance(error, commands.CommandInvokeError):
             error = error.original
         if isinstance(error, commands.CheckFailure):
-            await ctx.send(embed=self.simple_embed('You may not use this command.'))
+            await ctx.send(embed=self.bot.simple_embed('You may not use this command.'))
         else:
-            await ctx.send(embed=self.simple_embed(f'Something went wrong: {error}'))
+            await ctx.send(embed=self.bot.simple_embed(f'Something went wrong: {error}'))
             print('Ignoring exception in command {}:'.format(
                 ctx.command), file=stderr)
             print_exception(
@@ -126,7 +120,7 @@ class Blacklist(commands.Cog):
         await c.execute('SELECT * FROM blacklist WHERE userid=?', (user_to_unblacklist.id,))
 
         if await c.fetchone() is None:
-            await ctx.send(embed=self.simple_embed('User is not blacklisted.'))
+            await ctx.send(embed=self.bot.simple_embed('User is not blacklisted.'))
             return
 
         await c.execute('DELETE FROM blacklist WHERE userid=?', (user_to_unblacklist.id,))
@@ -148,14 +142,14 @@ class Blacklist(commands.Cog):
         if isinstance(error, commands.CommandInvokeError):
             error = error.original
         if isinstance(error, discord.Forbidden):
-            await ctx.send(embed=self.simple_embed(f"Note: Unblacklisted user, but but couldn't notify them– they have probably blocked the bot. ({error})"))
+            await ctx.send(embed=self.bot.simple_embed(f"Note: Unblacklisted user, but but couldn't notify them– they have probably blocked the bot. ({error})"))
         elif isinstance(error, commands.CheckFailure):
-            await ctx.send(embed=self.simple_embed('You may not use this command.'))
+            await ctx.send(embed=self.bot.simple_embed('You may not use this command.'))
         elif isinstance(error, commands.MemberNotFound):
-            await ctx.send(embed=self.simple_embed(f'Error: member not found. ({error})'))
+            await ctx.send(embed=self.bot.simple_embed(f'Error: member not found. ({error})'))
         else:
             # All other errors not returned come here. And we can just print the default Traceback.
-            await ctx.send(embed=self.simple_embed(f'Something went wrong: {error}'))
+            await ctx.send(embed=self.bot.simple_embed(f'Something went wrong: {error}'))
             print('Ignoring exception in command {}:'.format(
                 ctx.command), file=stderr)
             print_exception(

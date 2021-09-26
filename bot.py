@@ -29,6 +29,8 @@ async def startup():
         help_command=commands.MinimalHelpCommand()
         )
 
+    bot.simple_embed = lambda desc: discord.Embed(description = desc)
+
     async with aiosqlite.connect('modmail.db') as conn:
 
         bot.conn = conn
