@@ -30,6 +30,7 @@ class Blacklist(commands.Cog):
 # region blacklist commands and errors
     @commands.group()
     @mod_only()
+    @commands.guild_only()
     async def blacklist(self, ctx: commands.Context):
         "Commands to prevent certain users from using the modmail bot (e.g. if they're spamming)."
         if not ctx.invoked_subcommand:
@@ -121,8 +122,10 @@ class Blacklist(commands.Cog):
     async def blacklist_error(self, ctx: commands.Context, error):
         if isinstance(error, commands.CommandInvokeError):
             error = error.original
-        if isinstance(error, commands.CheckFailure):
-            if ctx.author.id in [each_row[1] for each_row in self.bot.blacklisted_users]:
+        if isinstance(error, commands.NoPrivateMessage):
+            await ctx.send(embed=self.bot.simple_embed('Error: command cannot be used in DMs.'))
+        elif isinstance(error, commands.CheckFailure):
+            if ctx.author.id in self.bot.blacklisted_users:
                 return
             await ctx.send(embed=self.bot.simple_embed("You may not use this command."))
 

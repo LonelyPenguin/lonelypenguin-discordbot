@@ -9,6 +9,7 @@ from textwrap import fill
 from functools import wraps
 
 from discord.ext import commands
+from discord.ext.commands.errors import CommandInvokeError
 from discord.utils import resolve_annotation
 from views import Confirm
 # endregion
@@ -275,6 +276,7 @@ class Modmail(commands.Cog):
 
     @modmail.command(name='open', aliases=['start', 'initiate', 'new'])
     @mod_only()
+    @commands.guild_only()
     async def mod_open_modmail(self, ctx: commands.Context, open_modmail_with_user: discord.Member, *, new_modmail_reason: str = "no reason specified"):
 
         """Command for moderators to open a new modmail with a designated user.
@@ -286,11 +288,6 @@ class Modmail(commands.Cog):
         Attempting to open two tickets at once with the same user will result in an error, but should be handled;
         if something goes wrong, contact LonelyPenguin#9931.
         Maximum length of reason is 72 characters."""
-
-        if ctx.guild != self.bot.get_guild(self.bot.server_id):
-            await ctx.send(embed=self.bot.simple_embed('You must be in the server to use this command.'), delete_after=5.0)
-            await ctx.message.delete(delay=4.75)
-            return
 
         c = await self.bot.conn.execute('SELECT * FROM activemodmails WHERE modmailchnlid=?', (ctx.channel.id,))
         if await c.fetchone() is not None:
@@ -440,6 +437,10 @@ class Modmail(commands.Cog):
         await mod_reason_updated_msg.pin()
         await user_reason_updated_msg.pin()
 
+    @modmail.error
+    async def modmail_error(self, ctx: commands.Context, error):
+        if isinstance(error, commands.CommandInvokeError):
+            error = error.original
 
     @mod_open_modmail.error
     async def mod_open_modmail_error(self, ctx: commands.Context, error):
@@ -458,7 +459,10 @@ class Modmail(commands.Cog):
                 await ctx.send(embed=self.bot.simple_embed(f"Error: Haha, very funny. A bot cannot DM another bot. ({error})"))
         elif isinstance(error, commands.MemberNotFound):
             await ctx.send(embed=self.bot.simple_embed(f'Error: member not found. ({error})'))
+        elif isinstance(error, commands.NoPrivateMessage):
+            await ctx.send(embed=self.bot.simple_embed('Error: command cannot be used in DMs.'))
         elif isinstance(error, commands.CheckFailure):
+            # No need to handle the case of a blacklisted user as this is already handled by the group error.
             await ctx.send(embed=self.bot.simple_embed('You may not use this command.'))
         else:
             # All other errors not returned come here. And we can just print the default Traceback.

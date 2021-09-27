@@ -27,6 +27,7 @@ class Admin(commands.Cog):
 # region admin commands and errors
     @commands.group(name='admin')
     @mod_only()
+    @commands.guild_only()
     async def admin(self, ctx: commands.Context):
         await ctx.send(embed=self.bot.simple_embed('Run `;help admin` for details.'))
 
@@ -97,6 +98,16 @@ class Admin(commands.Cog):
 
         await ctx.send(embed=self.bot.simple_embed(f'IDs of moderators registered in the bot: {data["moderator_ids"]}'))
 
+    @admin.error
+    async def admin_error(self, ctx: commands.Context, error):
+        if isinstance(error, commands.CommandInvokeError):
+            error = error.original
+        if isinstance(error, commands.NoPrivateMessage):
+            await ctx.send(embed=self.bot.simple_embed('Error: command cannot be used in DMs.'))
+        elif isinstance(error, commands.CheckFailure):
+            if ctx.author.id in self.bot.blacklisted_users:
+                return
+            await ctx.send(embed=self.bot.simple_embed("You may not use this command."))
 
     @manual_modmail_add.error
     async def manual_modmail_add_error(self, ctx: commands.Context, error):
@@ -115,15 +126,6 @@ class Admin(commands.Cog):
             ctx.command), file=stderr)
         print_exception(
             type(error), error, error.__traceback__, file=stderr)
-
-    @admin.error
-    async def admin_error(self, ctx: commands.Context, error):
-        if isinstance(error, commands.CommandInvokeError):
-            error = error.original
-        if isinstance(error, commands.CheckFailure):
-            if ctx.author.id in [each_row[1] for each_row in self.bot.blacklisted_users]:
-                return
-            await ctx.send(embed=self.bot.simple_embed("You may not use this command."))
 
     @add_moderators.error
     async def add_moderators_error(self, ctx: commands.Context, error):
