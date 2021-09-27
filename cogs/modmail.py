@@ -41,10 +41,10 @@ class Modmail(commands.Cog):
 
         To successfully trigger a command, user must not be blacklisted from the bot, or must be LonelyPenguin or a moderator.
         """
-
+       #Ignore blacklisted users unless they are mods or LonelyPenguin
         return ctx.author.id not in [each_row[1] for each_row in self.bot.blacklisted_users] or ctx.author.id == 305704400041803776 or ctx.author.id in self.bot.moderator_ids
 
-    def check_if_moderator():
+    def mod_only():
         """Commands with this check will only execute for moderators."""
 
         def predicate(ctx: commands.Context):
@@ -273,7 +273,7 @@ class Modmail(commands.Cog):
             await ctx.send(embed=self.bot.simple_embed('Run `;help modmail` for details.'))
 
     @modmail.command(name='open', aliases=['start', 'initiate', 'new'])
-    @check_if_moderator()
+    @mod_only()
     async def mod_open_modmail(self, ctx: commands.Context, open_modmail_with_user: discord.Member, *, new_modmail_reason: str = "no reason specified"):
 
         """Command for moderators to open a new modmail with a designated user.

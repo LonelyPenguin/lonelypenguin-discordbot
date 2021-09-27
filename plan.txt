@@ -5,7 +5,9 @@ todo:
 2 rethink error handling (do you really want it to print the traceback all the time?)
 0.5 organize imports
 1 mods can only open modmail in specific cat/channel?
-1 make mod-only checks command-specific, rather than cog level, so errors show
+0.5 make things guild-only
+0 put error handlers at end
+0.5 make blacklist users check not need a list comp
 
 notes/resources:
 https://realpython.com/documenting-python-code/

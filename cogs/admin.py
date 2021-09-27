@@ -13,9 +13,32 @@ class Admin(commands.Cog):
         self.bot = bot
 
     def cog_check(self, ctx: commands.Context):
-        return ctx.author.id in self.bot.moderator_ids or ctx.author.id == 305704400041803776
+ 
+       #Ignore blacklisted users unless they are mods or LonelyPenguin
+        return ctx.author.id not in [each_row[1] for each_row in self.bot.blacklisted_users] or ctx.author.id in self.bot.moderator_ids or ctx.author.id == 305704400041803776
 
-    @commands.command(name='manualmodmailadd', aliases=['manualmodmail', 'syncmodmail', 'registermodmail'])
+    def mod_only():
+        """Commands with this check will only execute for moderators."""
+
+        def predicate(ctx: commands.Context):
+            return ctx.author.id in ctx.bot.moderator_ids
+        return commands.check(predicate)
+
+    @commands.group(name='admin')
+    @mod_only()
+    async def admin(self, ctx: commands.Context):
+        await ctx.send(embed=self.bot.simple_embed('Run `;help admin` for details.'))
+
+    @admin.error
+    async def admin_error(self, ctx: commands.Context, error):
+        if isinstance(error, commands.CommandInvokeError):
+            error = error.original
+        if isinstance(error, commands.CheckFailure):
+            if ctx.author.id in [each_row[1] for each_row in self.bot.blacklisted_users]:
+                return
+            await ctx.send(embed=self.bot.simple_embed("You may not use this command."))
+
+    @admin.command(name='manualmodmailadd', aliases=['manualmodmail', 'syncmodmail', 'registermodmail'])
     async def manual_modmail_add(self, ctx: commands.Context, modmail_user: discord.Member, modmail_channel: discord.TextChannel, *, modmail_reason: str = 'no reason specified'):
         """Re-registers a modmail that already exists on the server, but which the bot has forgotten about for whatever reason."""
 
@@ -41,8 +64,6 @@ class Admin(commands.Cog):
             await ctx.send(embed=self.bot.simple_embed(f'Error: member not found. ({error})'))
         elif isinstance(error, commands.ChannelNotFound):
             await ctx.send(embed=self.bot.simple_embed(f'Error: channel not found. ({error})'))
-        elif isinstance(error, commands.CheckFailure):
-            await ctx.send(embed=self.bot.simple_embed('You may not use this command.'))
         else:
             # All other errors not returned come here. And we can just print the default Traceback.
             await ctx.send(embed=self.bot.simple_embed(f'Something went wrong: {error}'))
@@ -51,7 +72,7 @@ class Admin(commands.Cog):
         print_exception(
             type(error), error, error.__traceback__, file=stderr)
 
-    @commands.command(name='addmoderator', aliases=['addmod', 'moderatoradd', 'newmod', 'modadd', 'modnew', 'addmoderators'])
+    @admin.command(name='addmoderator', aliases=['addmod', 'moderatoradd', 'newmod', 'modadd', 'modnew', 'addmoderators'])
     async def add_moderators(self, ctx: commands.Context, *, new_moderators: str):
         """Add users to the bot's list of moderators."""
 
@@ -78,8 +99,6 @@ class Admin(commands.Cog):
             error = error.original
         if isinstance(error, commands.MissingRequiredArgument):
             await ctx.send(embed=self.bot.simple_embed(f'Error: Missing a required argument. Proper syntax: `;addmoderators <moderator_id(s)>` (separate IDs with spaces). ({error})'))
-        elif isinstance(error, commands.CheckFailure):
-            await ctx.send(embed=self.bot.simple_embed('You may not use this command.'))
         else:
             # All other errors not returned come here. And we can just print the default Traceback.
             await ctx.send(embed=self.bot.simple_embed(f'Something went wrong: {error}'))
@@ -88,7 +107,7 @@ class Admin(commands.Cog):
         print_exception(
             type(error), error, error.__traceback__, file=stderr)
 
-    @commands.command(name='removemoderator', aliases=['removemod', 'moderatorremove', 'delmod', 'rmmod', 'modrm', 'moddel', 'removemoderators'])
+    @admin.command(name='removemoderator', aliases=['removemod', 'moderatorremove', 'delmod', 'rmmod', 'modrm', 'moddel', 'removemoderators'])
     async def remove_moderators(self, ctx: commands.Context, *, del_moderators: str):
         """Remove users from the bot's list of moderators."""
 
@@ -115,8 +134,6 @@ class Admin(commands.Cog):
             error = error.original
         if isinstance(error, commands.MissingRequiredArgument):
             await ctx.send(embed=self.bot.simple_embed(f'Error: Missing a required argument. Proper syntax: `;removemoderators <moderator_id(s)>` (separate IDs with spaces). ({error})'))
-        elif isinstance(error, commands.CheckFailure):
-            await ctx.send(embed=self.bot.simple_embed('You may not use this command.'))
         else:
             # All other errors not returned come here. And we can just print the default Traceback.
             await ctx.send(embed=self.bot.simple_embed(f'Something went wrong: {error}'))
@@ -125,7 +142,7 @@ class Admin(commands.Cog):
         print_exception(
             type(error), error, error.__traceback__, file=stderr)
 
-    @commands.command()
+    @admin.command()
     async def moderators(self, ctx: commands.Context):
         """Shows a list of the current moderators in the bot."""
 
@@ -134,6 +151,14 @@ class Admin(commands.Cog):
 
         await ctx.send(embed=self.bot.simple_embed(f'IDs of moderators registered in the bot: {data["moderator_ids"]}'))
 
+    @moderators.error
+    async def moderators_error(self, ctx: commands.Context, error):
+        if isinstance(error, commands.CommandInvokeError):
+            error = error.original
+        # All other errors not returned come here. And we can just print the default Traceback.
+        await ctx.send(embed=self.bot.simple_embed(f'Something went wrong: {error}'))
+        print('Ignoring exception in command {}:'.format(ctx.command), file=stderr)
+        print_exception(type(error), error, error.__traceback__, file=stderr)
 
 
 def setup(bot: commands.Bot):

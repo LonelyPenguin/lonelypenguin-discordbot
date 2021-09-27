@@ -16,15 +16,33 @@ class Blacklist(commands.Cog):
                               'footer': 'Use ;modmail close to close this modmail, and ;modmail reason to change its reason.'}
 
     def cog_check(self, ctx: commands.Context):
+ 
+       #Ignore blacklisted users unless they are mods or LonelyPenguin
+        return ctx.author.id not in [each_row[1] for each_row in self.bot.blacklisted_users] or ctx.author.id in self.bot.moderator_ids or ctx.author.id == 305704400041803776
 
-        return ctx.author.id not in [each_row[1] for each_row in self.bot.blacklisted_users] and ctx.author.id in self.bot.moderator_ids or ctx.author.id == 305704400041803776
+    def mod_only():
+        """Commands with this check will only execute for moderators."""
+
+        def predicate(ctx: commands.Context):
+            return ctx.author.id in ctx.bot.moderator_ids
+        return commands.check(predicate)
 
 # region blacklist commands and errors
     @commands.group()
+    @mod_only()
     async def blacklist(self, ctx: commands.Context):
         "Commands to prevent certain users from using the modmail bot (e.g. if they're spamming)."
         if not ctx.invoked_subcommand:
             await ctx.send(embed=self.bot.simple_embed('Run `;help blacklist` for details, or `;blacklist show` to view the current blacklist.'))
+
+    @blacklist.error
+    async def blacklist_error(self, ctx: commands.Context, error):
+        if isinstance(error, commands.CommandInvokeError):
+            error = error.original
+        if isinstance(error, commands.CheckFailure):
+            if ctx.author.id in [each_row[1] for each_row in self.bot.blacklisted_users]:
+                return
+            await ctx.send(embed=self.bot.simple_embed("You may not use this command."))
 
     @blacklist.command(name='add')
     async def blacklist_add(self, ctx: commands.Context, user_to_blacklist: discord.Member):
@@ -63,8 +81,6 @@ class Blacklist(commands.Cog):
             await ctx.send(embed=self.bot.simple_embed(f"Note: Blacklisted user, but couldn't notify them– they have probably blocked the bot. ({error})"))
         elif isinstance(error, commands.MemberNotFound):
             await ctx.send(embed=self.bot.simple_embed(f'Error: member not found. ({error})'))
-        elif isinstance(error, commands.CheckFailure):
-            await ctx.send(embed=self.bot.simple_embed('You may not use this command.'))
         else:
             # All other errors not returned come here. And we can just print the default Traceback.
             await ctx.send(embed=self.bot.simple_embed(f'Something went wrong: {error}'))
@@ -100,14 +116,11 @@ class Blacklist(commands.Cog):
     async def blacklist_show_error(self, ctx: commands.Context, error):
         if isinstance(error, commands.CommandInvokeError):
             error = error.original
-        if isinstance(error, commands.CheckFailure):
-            await ctx.send(embed=self.bot.simple_embed('You may not use this command.'))
-        else:
-            await ctx.send(embed=self.bot.simple_embed(f'Something went wrong: {error}'))
-            print('Ignoring exception in command {}:'.format(
-                ctx.command), file=stderr)
-            print_exception(
-                type(error), error, error.__traceback__, file=stderr)
+        await ctx.send(embed=self.bot.simple_embed(f'Something went wrong: {error}'))
+        print('Ignoring exception in command {}:'.format(
+            ctx.command), file=stderr)
+        print_exception(
+            type(error), error, error.__traceback__, file=stderr)
 
     @blacklist.command(name='remove')
     async def blacklist_remove(self, ctx: commands.Context, user_to_unblacklist: discord.Member):
@@ -143,8 +156,6 @@ class Blacklist(commands.Cog):
             error = error.original
         if isinstance(error, discord.Forbidden):
             await ctx.send(embed=self.bot.simple_embed(f"Note: Unblacklisted user, but but couldn't notify them– they have probably blocked the bot. ({error})"))
-        elif isinstance(error, commands.CheckFailure):
-            await ctx.send(embed=self.bot.simple_embed('You may not use this command.'))
         elif isinstance(error, commands.MemberNotFound):
             await ctx.send(embed=self.bot.simple_embed(f'Error: member not found. ({error})'))
         else:
