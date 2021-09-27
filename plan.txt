@@ -6,7 +6,6 @@ todo:
 0.5 organize imports
 1 mods can only open modmail in specific cat/channel?
 0.5 make things guild-only
-0 put error handlers at end
 
 notes/resources:
 https://realpython.com/documenting-python-code/

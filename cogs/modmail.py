@@ -272,6 +272,7 @@ class Modmail(commands.Cog):
         if not ctx.invoked_subcommand:
             await ctx.send(embed=self.bot.simple_embed('Run `;help modmail` for details.'))
 
+
     @modmail.command(name='open', aliases=['start', 'initiate', 'new'])
     @mod_only()
     async def mod_open_modmail(self, ctx: commands.Context, open_modmail_with_user: discord.Member, *, new_modmail_reason: str = "no reason specified"):
@@ -309,33 +310,6 @@ class Modmail(commands.Cog):
 
         await self.open_modmail_func(msg, open_modmail_with_user.id, False, modmailreason=new_modmail_reason[:71])
         await msg.add_reaction('👍')
-
-    @mod_open_modmail.error
-    async def mod_open_modmail_error(self, ctx: commands.Context, error):
-        if isinstance(error, commands.CommandInvokeError):
-            error = error.original
-        if isinstance(error, discord.Forbidden) or isinstance(error, AttributeError):
-            await ctx.send(embed=self.bot.simple_embed(f"Error: bot probably can't DM that user. ({error})"))
-        elif isinstance(error, asyncio.TimeoutError):
-            await ctx.send(embed=self.bot.simple_embed(f'Timed out. Use the command ;modmail open <user> [reason] to try again. ({error})'))
-        elif isinstance(error, commands.MissingRequiredArgument):
-            await ctx.send(embed=self.bot.simple_embed(f'Error: Missing a required argument. Proper syntax: `;modmail open <user> [reason]`. ({error})'))
-        elif isinstance(error, discord.HTTPException):
-            if error.code == 50035:
-                await ctx.send(embed=self.bot.simple_embed(f'Error: Your message or reason was too long to send. If a modmail channel is open, please use it as-is and send your message again (but shorter). Otherwise, run this command again with a shorter message. ({error})'))
-            elif error.code == 50007:
-                await ctx.send(embed=self.bot.simple_embed(f"Error: Haha, very funny. A bot cannot DM another bot. ({error})"))
-        elif isinstance(error, commands.MemberNotFound):
-            await ctx.send(embed=self.bot.simple_embed(f'Error: member not found. ({error})'))
-        elif isinstance(error, commands.CheckFailure):
-            await ctx.send(embed=self.bot.simple_embed('You may not use this command.'))
-        else:
-            # All other errors not returned come here. And we can just print the default Traceback.
-            await ctx.send(embed=self.bot.simple_embed(f'Something went wrong: {error}'))
-        print('Ignoring exception in command {}:'.format(
-            ctx.command), file=stderr)
-        print_exception(
-            type(error), error, error.__traceback__, file=stderr)
 
     @modmail.command(name='close', aliases=['shutdown', 'finish', 'end'])
     @commands.cooldown(1, 300.0, commands.cooldowns.BucketType.channel)
@@ -417,30 +391,6 @@ class Modmail(commands.Cog):
         modmail_log.close()
         await modmail_channel.delete()
 
-    @closemodmail.error
-    async def closemodmail_error(self, ctx: commands.Context, error):
-        if isinstance(error, commands.CommandInvokeError):
-            error = error.original
-        if isinstance(error, TypeError):
-            await ctx.send(embed=self.bot.simple_embed(f"Error: You probably aren't in a modmail. ({error})"), delete_after=5.0)
-            await ctx.message.delete(delay=4.75)
-        elif isinstance(error, discord.HTTPException):
-            if error.code == 50035:
-                await ctx.send(embed=self.bot.simple_embed(f'Error: Reason is too long– change the reason to a shorter one, then close the modmail. ({error})'))
-        elif isinstance(error, discord.Forbidden):
-            await ctx.send(embed=self.bot.simple_embed(f"Note: Modmail closed, but couldn't DM the user to notify them. ({error})"))
-        elif isinstance(error, commands.CommandOnCooldown):
-            await ctx.send(embed=self.bot.simple_embed(f"On cooldown: You can't use this command for another {round(error.retry_after)} seconds. This is probably because you have very recently closed a different modmail. You can ask a moderator to close this modmail for you if that's convenient."))
-        elif isinstance(error, AttributeError):
-            await ctx.send(embed=self.bot.simple_embed(f'Error: Modmail channel was probably already deleted. Modmail has probably still been closed, though. ({error})'))
-        else:
-            # All other errors not returned come here. And we can just print the default Traceback.
-            await ctx.send(embed=self.bot.simple_embed(f'Something went wrong: {error}'))
-            print('Ignoring exception in command {}:'.format(
-                ctx.command), file=stderr)
-            print_exception(
-                type(error), error, error.__traceback__, file=stderr)
-
     @modmail.command(name='reason', aliases=['topic', 'subject'])
     @commands.cooldown(2, 10.0, commands.cooldowns.BucketType.channel)
     async def modmailreason(self, ctx: commands.Context, *, reason: str = None):
@@ -489,6 +439,58 @@ class Modmail(commands.Cog):
         user_reason_updated_msg = await modmail_user.send(embed=update_notice_embed)
         await mod_reason_updated_msg.pin()
         await user_reason_updated_msg.pin()
+
+
+    @mod_open_modmail.error
+    async def mod_open_modmail_error(self, ctx: commands.Context, error):
+        if isinstance(error, commands.CommandInvokeError):
+            error = error.original
+        if isinstance(error, discord.Forbidden) or isinstance(error, AttributeError):
+            await ctx.send(embed=self.bot.simple_embed(f"Error: bot probably can't DM that user. ({error})"))
+        elif isinstance(error, asyncio.TimeoutError):
+            await ctx.send(embed=self.bot.simple_embed(f'Timed out. Use the command ;modmail open <user> [reason] to try again. ({error})'))
+        elif isinstance(error, commands.MissingRequiredArgument):
+            await ctx.send(embed=self.bot.simple_embed(f'Error: Missing a required argument. Proper syntax: `;modmail open <user> [reason]`. ({error})'))
+        elif isinstance(error, discord.HTTPException):
+            if error.code == 50035:
+                await ctx.send(embed=self.bot.simple_embed(f'Error: Your message or reason was too long to send. If a modmail channel is open, please use it as-is and send your message again (but shorter). Otherwise, run this command again with a shorter message. ({error})'))
+            elif error.code == 50007:
+                await ctx.send(embed=self.bot.simple_embed(f"Error: Haha, very funny. A bot cannot DM another bot. ({error})"))
+        elif isinstance(error, commands.MemberNotFound):
+            await ctx.send(embed=self.bot.simple_embed(f'Error: member not found. ({error})'))
+        elif isinstance(error, commands.CheckFailure):
+            await ctx.send(embed=self.bot.simple_embed('You may not use this command.'))
+        else:
+            # All other errors not returned come here. And we can just print the default Traceback.
+            await ctx.send(embed=self.bot.simple_embed(f'Something went wrong: {error}'))
+        print('Ignoring exception in command {}:'.format(
+            ctx.command), file=stderr)
+        print_exception(
+            type(error), error, error.__traceback__, file=stderr)
+
+    @closemodmail.error
+    async def closemodmail_error(self, ctx: commands.Context, error):
+        if isinstance(error, commands.CommandInvokeError):
+            error = error.original
+        if isinstance(error, TypeError):
+            await ctx.send(embed=self.bot.simple_embed(f"Error: You probably aren't in a modmail. ({error})"), delete_after=5.0)
+            await ctx.message.delete(delay=4.75)
+        elif isinstance(error, discord.HTTPException):
+            if error.code == 50035:
+                await ctx.send(embed=self.bot.simple_embed(f'Error: Reason is too long– change the reason to a shorter one, then close the modmail. ({error})'))
+        elif isinstance(error, discord.Forbidden):
+            await ctx.send(embed=self.bot.simple_embed(f"Note: Modmail closed, but couldn't DM the user to notify them. ({error})"))
+        elif isinstance(error, commands.CommandOnCooldown):
+            await ctx.send(embed=self.bot.simple_embed(f"On cooldown: You can't use this command for another {round(error.retry_after)} seconds. This is probably because you have very recently closed a different modmail. You can ask a moderator to close this modmail for you if that's convenient."))
+        elif isinstance(error, AttributeError):
+            await ctx.send(embed=self.bot.simple_embed(f'Error: Modmail channel was probably already deleted. Modmail has probably still been closed, though. ({error})'))
+        else:
+            # All other errors not returned come here. And we can just print the default Traceback.
+            await ctx.send(embed=self.bot.simple_embed(f'Something went wrong: {error}'))
+            print('Ignoring exception in command {}:'.format(
+                ctx.command), file=stderr)
+            print_exception(
+                type(error), error, error.__traceback__, file=stderr)
 
     @modmailreason.error
     async def modmailreason_error(self, ctx: commands.Context, error):
