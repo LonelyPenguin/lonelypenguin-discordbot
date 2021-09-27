@@ -18,7 +18,7 @@ class Blacklist(commands.Cog):
     def cog_check(self, ctx: commands.Context):
  
        #Ignore blacklisted users unless they are mods or LonelyPenguin
-        return ctx.author.id not in [each_row[1] for each_row in self.bot.blacklisted_users] or ctx.author.id in self.bot.moderator_ids or ctx.author.id == 305704400041803776
+        return ctx.author.id not in self.bot.blacklisted_users or ctx.author.id in self.bot.moderator_ids or ctx.author.id == 305704400041803776
 
     def mod_only():
         """Commands with this check will only execute for moderators."""
@@ -63,7 +63,7 @@ class Blacklist(commands.Cog):
         await self.bot.conn.commit()
 
         c = await self.bot.conn.execute('SELECT * FROM blacklist')
-        self.bot.blacklisted_users = await c.fetchall()
+        self.bot.blacklisted_users = [each_row[1] for each_row in await c.fetchall()]
 
         mod_confirmed_blacklist_embed = discord.Embed(description=f'Blacklisted {user_to_blacklist.mention} from interacting with the modmail system.').set_author(
             name=self.embed_details['author name'], icon_url=self.embed_details['author icon'])
@@ -140,7 +140,7 @@ class Blacklist(commands.Cog):
         await self.bot.conn.commit()
 
         c = await self.bot.conn.execute('SELECT * FROM blacklist')
-        self.bot.blacklisted_users = await c.fetchall()
+        self.bot.blacklisted_users = [each_row[1] for each_row in await c.fetchall()]
 
         mod_confirmed_unblacklist_embed = discord.Embed(description=f'Removed {user_to_unblacklist.mention} from the blacklist. They can once again interact with the modmail system.').set_author(
             name=self.embed_details['author name'], icon_url=self. embed_details['author icon'])

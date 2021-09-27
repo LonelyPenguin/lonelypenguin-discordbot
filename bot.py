@@ -39,7 +39,7 @@ async def startup():
         await c.execute('CREATE TABLE IF NOT EXISTS blacklist (timestamp text, userid integer, username text)')
         await bot.conn.commit()
         await c.execute('SELECT * FROM blacklist')
-        bot.blacklisted_users = await c.fetchall()
+        bot.blacklisted_users = [each_row[1] for each_row in await c.fetchall()]
 
         with open("config/server_vars.json") as server_vars_file:
             server_vars = json.load(server_vars_file)
