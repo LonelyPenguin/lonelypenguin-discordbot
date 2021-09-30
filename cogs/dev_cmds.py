@@ -43,9 +43,8 @@ class DevCommands(commands.Cog):
         Not designed or tested for widespread use. Only responds to LonelyPenguin.
         """
 
-        c = await self.bot.conn.execute('SELECT * FROM activemodmails')
-        full_activemodmails_table = await c.fetchall()
-        await self.bot.conn.commit()
+        results = await self.bot.do_db_query(self.bot, 'SELECT * FROM activemodmails', None ,"all")
+        full_activemodmails_table = results
 
         table_contents = StringIO(
             f'userid, modmailchnlid, reason\n\n{linesep.join([str(my_row) for my_row in full_activemodmails_table])}')
@@ -86,9 +85,8 @@ class DevCommands(commands.Cog):
 
         user_id = int(user_id)
 
-        c = await self.bot.conn.cursor()
-        await c.execute('SELECT * FROM activemodmails WHERE userid=?', (user_id,))
-        my_rows = await c.fetchall()
+        results = await self.bot.do_db_query(self.bot, 'SELECT * FROM activemodmails WHERE userid=?', (user_id,), "all")
+        my_rows = results
         my_str = '```userid, modmailchnlid, reason\n\n'
         my_str += '\n'.join([str(row) for row in my_rows])
         my_str += '```'
@@ -107,8 +105,7 @@ class DevCommands(commands.Cog):
             if str(reaction) in confirm_send:  # if user confirms
                 await ctx.send(f'Okay, removing the database entries tied to <@{user_id}>.')
 
-                await c.execute('DELETE FROM activemodmails WHERE userid=?', (user_id,))
-                await self.bot.conn.commit()
+                await self.bot.do_db_query(self.bot, 'DELETE FROM activemodmails WHERE userid=?', (user_id,))
 
                 await ctx.send('Done.')
 

@@ -43,13 +43,15 @@ async def startup():
         await c.execute('SELECT * FROM blacklist')
         bot.blacklisted_users = [each_row[1] for each_row in await c.fetchall()]
 
-        async def do_db_query(bot: commands.Bot, query: str, args: tuple, fetch: bool = True):
+        async def do_db_query(bot: commands.Bot, query: str, args: tuple, fetch = None):
             async with bot.conn.execute(query, args) as c:
-                if fetch:
-                    c.all = await c.fetchall()
-                    c.one = await c.fetchone()
-                await bot.conn.commit()
-                return c
+                if fetch == "one":
+                    return await c.fetchone()
+                elif fetch == "all":
+                    return await c.fetchall()
+                else:
+                    await bot.conn.commit()
+                    return None
 
         bot.do_db_query = do_db_query
 

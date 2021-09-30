@@ -45,18 +45,16 @@ class Blacklist(commands.Cog):
         Only moderators can use this command.
         Users will be notified that they are blacklisted."""
 
-        c = await self.bot.conn.cursor()
-        await c.execute('SELECT * FROM blacklist WHERE userid=?', (user_to_blacklist.id,))
+        results = await self.bot.do_db_query(self.bot, 'SELECT * FROM blacklist WHERE userid=?', (user_to_blacklist.id,), "one")
 
-        if await c.fetchone() is not None:
+        if results is not None:
             await ctx.send(embed=self.bot.simple_embed('User is already blacklisted.'))
             return
 
-        await c.execute('INSERT INTO blacklist VALUES (?,?,?)', (str(ctx.message.created_at)[:19], user_to_blacklist.id, user_to_blacklist.name))
-        await self.bot.conn.commit()
+        await self.bot.do_db_query(self.bot, 'INSERT INTO blacklist VALUES (?,?,?)', (str(ctx.message.created_at)[:19], user_to_blacklist.id, user_to_blacklist.name))
 
-        c = await self.bot.conn.execute('SELECT * FROM blacklist')
-        self.bot.blacklisted_users = [each_row[1] for each_row in await c.fetchall()]
+        results = await self.bot.do_db_query(self.bot, 'SELECT * FROM blacklist', None, "all")
+        self.bot.blacklisted_users = [each_row[1] for each_row in results]
 
         mod_confirmed_blacklist_embed = discord.Embed(description=f'Blacklisted {user_to_blacklist.mention} from interacting with the modmail system.').set_author(
             name=self.embed_details['author name'], icon_url=self.embed_details['author icon'])
@@ -74,18 +72,16 @@ class Blacklist(commands.Cog):
         Users will be notified that they are unblacklisted.
         Add someone to the blacklist with `;blacklist add`."""
 
-        c = await self.bot.conn.cursor()
-        await c.execute('SELECT * FROM blacklist WHERE userid=?', (user_to_unblacklist.id,))
+        results = await self.bot.do_db_query(self.bot, 'SELECT * FROM blacklist WHERE userid=?', (user_to_unblacklist.id,), "one")
 
-        if await c.fetchone() is None:
+        if results is None:
             await ctx.send(embed=self.bot.simple_embed('User is not blacklisted.'))
             return
 
-        await c.execute('DELETE FROM blacklist WHERE userid=?', (user_to_unblacklist.id,))
-        await self.bot.conn.commit()
+        await self.bot.do_db_query(self.bot, 'DELETE FROM blacklist WHERE userid=?', (user_to_unblacklist.id,))
 
-        c = await self.bot.conn.execute('SELECT * FROM blacklist')
-        self.bot.blacklisted_users = [each_row[1] for each_row in await c.fetchall()]
+        results = await self.bot.do_db_query(self.bot, 'SELECT * FROM blacklist', None, "all")
+        self.bot.blacklisted_users = [each_row[1] for each_row in results]
 
         mod_confirmed_unblacklist_embed = discord.Embed(description=f'Removed {user_to_unblacklist.mention} from the blacklist. They can once again interact with the modmail system.').set_author(
             name=self.embed_details['author name'], icon_url=self. embed_details['author icon'])
@@ -102,9 +98,8 @@ class Blacklist(commands.Cog):
         Blacklist someone with `;blacklist add` and unblacklist them with `;blacklist remove`.
         Only moderators can use this command."""
 
-        c = await self.bot.conn.execute('SELECT * FROM blacklist')
-        full_blacklist_table = await c.fetchall()
-        await self.bot.conn.commit()
+        results = await self.bot.do_db_query(self.bot, 'SELECT * FROM blacklist', None, "all")
+        full_blacklist_table = results
 
         blacklist_entries = StringIO()
         blacklist_entries.write('timestamp (UTC), userid, username\n\n')
