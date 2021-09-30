@@ -3,7 +3,6 @@ todo:
 1 make docstrings better
 2 make task that checks for duplicate/leftover(?) db entries every x period of time
 2 rethink error handling (do you really want it to print the traceback all the time?)
-0.5 organize imports
 1 mods can only open modmail in specific cat/channel?
 
 notes/resources:

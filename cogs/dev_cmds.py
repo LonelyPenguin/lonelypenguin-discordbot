@@ -1,10 +1,10 @@
-import discord
-from discord.ext import commands
-import aiosqlite
 import asyncio
 from io import StringIO
-from sys import exit
 from os import linesep
+from sys import exit
+
+import discord
+from discord.ext import commands
 
 
 class DevCommands(commands.Cog):

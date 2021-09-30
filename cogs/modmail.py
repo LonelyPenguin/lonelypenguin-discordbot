@@ -1,16 +1,14 @@
 # region imports
-import discord
-import aiosqlite
 import asyncio
+from functools import wraps
 from io import StringIO
+from textwrap import fill
 from traceback import print_exception
 from sys import stderr
-from textwrap import fill
-from functools import wraps
 
+import discord
 from discord.ext import commands
-from discord.ext.commands.errors import CommandInvokeError
-from discord.utils import resolve_annotation
+
 from views import Confirm
 # endregion
 

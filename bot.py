@@ -1,11 +1,13 @@
 import asyncio
-import discord
-import logging
 import json
+import logging
+
 import aiosqlite
-import os.path
+import discord
 from discord.ext import commands
+
 from config.private import token
+
 
 logger = logging.getLogger("discord")
 logger.setLevel(logging.DEBUG)

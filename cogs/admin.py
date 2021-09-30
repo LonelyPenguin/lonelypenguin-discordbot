@@ -1,9 +1,9 @@
-import discord
-from discord.ext import commands
-import aiosqlite
 import json
 from sys import stderr
 from traceback import print_exception
+
+import discord
+from discord.ext import commands
 
 
 class Admin(commands.Cog):

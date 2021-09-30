@@ -1,5 +1,6 @@
 import discord
 
+
 # Define a simple View that gives us a confirmation menu
 class Confirm(discord.ui.View):
     def __init__(self, confirm_user=None):

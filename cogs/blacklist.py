@@ -1,9 +1,9 @@
-import discord
-from discord.ext import commands
-import aiosqlite
-from traceback import print_exception
 from io import StringIO
 from sys import stderr
+from traceback import print_exception
+
+import discord
+from discord.ext import commands
 
 
 class Blacklist(commands.Cog):

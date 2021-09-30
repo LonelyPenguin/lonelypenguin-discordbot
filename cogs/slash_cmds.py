@@ -1,6 +1,7 @@
+import aiohttp
 import discord
 from discord.ext import commands
-import aiohttp
+
 
 class SpaghettiSlashCommands(commands.Cog):
     """Slash commands before they're fully implemented by discord.py. Playing around, proof-of-concept."""
