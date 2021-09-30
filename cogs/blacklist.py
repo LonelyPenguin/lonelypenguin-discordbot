@@ -73,6 +73,7 @@ class Blacklist(commands.Cog):
         Only moderators can use this command.
         Users will be notified that they are unblacklisted.
         Add someone to the blacklist with `;blacklist add`."""
+
         c = await self.bot.conn.cursor()
         await c.execute('SELECT * FROM blacklist WHERE userid=?', (user_to_unblacklist.id,))
 
@@ -100,6 +101,7 @@ class Blacklist(commands.Cog):
 
         Blacklist someone with `;blacklist add` and unblacklist them with `;blacklist remove`.
         Only moderators can use this command."""
+
         c = await self.bot.conn.execute('SELECT * FROM blacklist')
         full_blacklist_table = await c.fetchall()
         await self.bot.conn.commit()
