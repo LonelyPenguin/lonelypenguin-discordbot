@@ -13,7 +13,7 @@ class Blacklist(commands.Cog):
         self.bot = bot
         self.embed_details = {'author name': 'Servername Modmail',
                               'author icon': 'https://cdn.discordapp.com/attachments/743536411369799804/854865953083228181/mail_icon.png',
-                              'footer': 'Use ;modmail close to close this modmail, and ;modmail reason to change its reason.'}
+                              'footer': 'Use `;modmail close` to close this modmail, and `;modmail reason` to change its reason.'}
 
     def cog_check(self, ctx: commands.Context):
  
@@ -41,7 +41,7 @@ class Blacklist(commands.Cog):
     async def blacklist_add(self, ctx: commands.Context, user_to_blacklist: discord.Member):
         """Adds a user to the blacklist (prevents them from using the bot).
 
-        Remove someone from the blacklist with ;blacklist remove.
+        Remove someone from the blacklist with `;blacklist remove`.
         Only moderators can use this command.
         Users will be notified that they are blacklisted."""
 
@@ -72,7 +72,7 @@ class Blacklist(commands.Cog):
 
         Only moderators can use this command.
         Users will be notified that they are unblacklisted.
-        Add someone to the blacklist with ;blacklist add."""
+        Add someone to the blacklist with `;blacklist add`."""
         c = await self.bot.conn.cursor()
         await c.execute('SELECT * FROM blacklist WHERE userid=?', (user_to_unblacklist.id,))
 
@@ -98,7 +98,7 @@ class Blacklist(commands.Cog):
     async def blacklist_show(self, ctx: commands.Context):
         """Shows the current state of the blacklist (who's on it and when they were blacklisted).
 
-        Blacklist someone with ;blacklist add and unblacklist them with ;blacklist remove.
+        Blacklist someone with `;blacklist add` and unblacklist them with `;blacklist remove`.
         Only moderators can use this command."""
         c = await self.bot.conn.execute('SELECT * FROM blacklist')
         full_blacklist_table = await c.fetchall()

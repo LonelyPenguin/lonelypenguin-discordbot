@@ -17,10 +17,10 @@ class Modmail(commands.Cog):
     # region cog/category docstring
     """Fully-featured modmail setup. DM this bot to open a modmail and speak to moderators. 
 
-    Use ;modmail reason and ;modmail close in an open modmail (channel or DM) to change the modmail reason or close it.
+    Use `;modmail reason` and `;modmail close` in an open modmail (channel or DM) to change the modmail reason or close it.
     Once closed, users and moderators will be sent a log of the conversation.
     Attachements function as expected. 
-    Moderators can use ;modmail open <user> [reason] to open a modmail with a specific user.
+    Moderators can use `;modmail open <user> [reason]` to open a modmail with a specific user.
     A '✅' reaction on a message means it's been successfully relayed, and messages without this reaction have not been relayed.
     A ✂️ means the message has been cut to stay within the character limit.
     If system does not function as expected, please contact LonelyPenguin#9931.
@@ -33,7 +33,7 @@ class Modmail(commands.Cog):
         self.bot = bot
         self.embed_details = {'author name': 'Servername Modmail',
                               'author icon': 'https://cdn.discordapp.com/attachments/743536411369799804/854865953083228181/mail_icon.png',
-                              'footer': 'Use ;modmail close to close this modmail, and ;modmail reason to change its reason.'}
+                              'footer': 'Use `;`modmail close` to close this modmail, and `;modmail reason` to change its reason.'}
 
     def cog_check(self, ctx: commands.Context):
         """Ensures that all commands in this cog only trigger when they are meant to.
@@ -80,7 +80,7 @@ class Modmail(commands.Cog):
         :param from_user: Whether the modmail is being opened by a user DMing the bot (otherwise, by a moderator with a cmd).
         :param modmailreason: The modmail's initial reason. Modmails opened by DMing the bot can initially only have the default reason.
 
-        Called by the DM message listener and the ;modmail open command."""
+        Called by the DM message listener and the `;`modmail open` command."""
 
         modmail_user = self.bot.get_user(modmailuserid)
 
@@ -267,7 +267,7 @@ class Modmail(commands.Cog):
     # region modmail commands and errors
     @commands.group()
     async def modmail(self, ctx: commands.Context):
-        """Commands for managing modmails. Use ;help modmail <command> to view each command."""
+        """Commands for managing modmails. Use `;help modmail <command>` to view each command."""
         if not ctx.invoked_subcommand:
             await ctx.send(embed=self.bot.simple_embed('Run `;help modmail` for details.'))
 
@@ -278,9 +278,9 @@ class Modmail(commands.Cog):
 
         """Command for moderators to open a new modmail with a designated user.
         Cannot be used by regular users. 
-        Syntax: ;modmail open <user id or mention> [optional reason].
+        Syntax: `;modmail open <user id or mention> [optional reason]`.
         Will create a new modmail and inform the user that a moderator opened it.
-        Reason defaults to 'no reason specified' and can be changed later using ;modmail reason.
+        Reason defaults to 'no reason specified' and can be changed later using `;modmail reason`.
         Upon use, bot will prompt for the initial message to relay to the designated user.
         Attempting to open two tickets at once with the same user will result in an error, but should be handled;
         if something goes wrong, contact LonelyPenguin#9931.
@@ -392,8 +392,8 @@ class Modmail(commands.Cog):
         Must be used in the channel/DM attached to the modmail.
         Overwrites previous reasons, but reason changes are logged.
         A modmail's latest reason is given upon closure.
-        Moderators can optionally set a reason for a modmail when opening one with ;modmail open.
-        Syntax: ;modmail reason [new reason]."""
+        Moderators can optionally set a reason for a modmail when opening one with `;modmail open`.
+        Syntax: `;modmail reason [new reason]`."""
 
         if not reason:
 
@@ -446,7 +446,7 @@ class Modmail(commands.Cog):
         if isinstance(error, discord.Forbidden) or isinstance(error, AttributeError):
             await ctx.send(embed=self.bot.simple_embed(f"Error: bot probably can't DM that user. ({error})"))
         elif isinstance(error, asyncio.TimeoutError):
-            await ctx.send(embed=self.bot.simple_embed(f'Timed out. Use the command ;modmail open <user> [reason] to try again. ({error})'))
+            await ctx.send(embed=self.bot.simple_embed(f'Timed out. Use the command `;modmail open <user> [reason]` to try again. ({error})'))
         elif isinstance(error, commands.MissingRequiredArgument):
             await ctx.send(embed=self.bot.simple_embed(f'Error: Missing a required argument. Proper syntax: `;modmail open <user> [reason]`. ({error})'))
         elif isinstance(error, discord.HTTPException):
