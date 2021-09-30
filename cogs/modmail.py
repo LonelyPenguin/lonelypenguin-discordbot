@@ -62,7 +62,7 @@ class Modmail(commands.Cog):
             self, message = args[0], args[1]
             message_context = await self.bot.get_context(message)
 
-            if message.author.bot or message_context.command or message.author.id in [each_row[1] for each_row in self.bot.blacklisted_users]:
+            if message.author.bot or message_context.command or message.author.id in self.bot.blacklisted_users:
                 return
 
             await listener(*args, **kwargs)
