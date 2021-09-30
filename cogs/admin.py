@@ -29,7 +29,8 @@ class Admin(commands.Cog):
     @mod_only()
     @commands.guild_only()
     async def admin(self, ctx: commands.Context):
-        await ctx.send(embed=self.bot.simple_embed('Run `;help admin` for details.'))
+        if not ctx.invoked_subcommand:
+            await ctx.send(embed=self.bot.simple_embed('Run `;help admin` for details.'))
 
     @admin.command(name='manualmodmailadd', aliases=['manualmodmail', 'syncmodmail', 'registermodmail'])
     async def manual_modmail_add(self, ctx: commands.Context, modmail_user: discord.Member, modmail_channel: discord.TextChannel, *, modmail_reason: str = 'no reason specified'):
