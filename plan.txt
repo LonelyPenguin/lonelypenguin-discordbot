@@ -2,8 +2,8 @@ todo:
 
 1 make docstrings better
 2 make task that checks for duplicate/leftover(?) db entries every x period of time
-2 rethink error handling (do you really want it to print the traceback all the time?)
 1 mods can only open modmail in specific cat/channel?
+0 if not ctx.invoked_subcommand: for admin admin
 
 notes/resources:
 https://realpython.com/documenting-python-code/

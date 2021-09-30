@@ -13,8 +13,8 @@ class Admin(commands.Cog):
         self.bot = bot
 
     def cog_check(self, ctx: commands.Context):
- 
-       #Ignore blacklisted users unless they are mods or LonelyPenguin
+
+       # Ignore blacklisted users unless they are mods or LonelyPenguin
         return ctx.author.id not in self.bot.blacklisted_users or ctx.author.id in self.bot.moderator_ids or ctx.author.id == 305704400041803776
 
     def mod_only():
@@ -122,10 +122,10 @@ class Admin(commands.Cog):
         else:
             # All other errors not returned come here. And we can just print the default Traceback.
             await ctx.send(embed=self.bot.simple_embed(f'Something went wrong: {error}'))
-        print('Ignoring exception in command {}:'.format(
-            ctx.command), file=stderr)
-        print_exception(
-            type(error), error, error.__traceback__, file=stderr)
+            print('Ignoring exception in command {}:'.format(
+                ctx.command), file=stderr)
+            print_exception(
+                type(error), error, error.__traceback__, file=stderr)
 
     @add_moderators.error
     async def add_moderators_error(self, ctx: commands.Context, error):
@@ -136,10 +136,10 @@ class Admin(commands.Cog):
         else:
             # All other errors not returned come here. And we can just print the default Traceback.
             await ctx.send(embed=self.bot.simple_embed(f'Something went wrong: {error}'))
-        print('Ignoring exception in command {}:'.format(
-            ctx.command), file=stderr)
-        print_exception(
-            type(error), error, error.__traceback__, file=stderr)
+            print('Ignoring exception in command {}:'.format(
+                ctx.command), file=stderr)
+            print_exception(
+                type(error), error, error.__traceback__, file=stderr)
 
     @remove_moderators.error
     async def remove_moderators_error(self, ctx: commands.Context, error):
@@ -150,10 +150,10 @@ class Admin(commands.Cog):
         else:
             # All other errors not returned come here. And we can just print the default Traceback.
             await ctx.send(embed=self.bot.simple_embed(f'Something went wrong: {error}'))
-        print('Ignoring exception in command {}:'.format(
-            ctx.command), file=stderr)
-        print_exception(
-            type(error), error, error.__traceback__, file=stderr)
+            print('Ignoring exception in command {}:'.format(
+                ctx.command), file=stderr)
+            print_exception(
+                type(error), error, error.__traceback__, file=stderr)
 
     @moderators.error
     async def moderators_error(self, ctx: commands.Context, error):
@@ -161,9 +161,11 @@ class Admin(commands.Cog):
             error = error.original
         # All other errors not returned come here. And we can just print the default Traceback.
         await ctx.send(embed=self.bot.simple_embed(f'Something went wrong: {error}'))
-        print('Ignoring exception in command {}:'.format(ctx.command), file=stderr)
+        print('Ignoring exception in command {}:'.format(
+            ctx.command), file=stderr)
         print_exception(type(error), error, error.__traceback__, file=stderr)
-#endregion
+# endregion
+
 
 def setup(bot: commands.Bot):
     bot.add_cog(Admin(bot))

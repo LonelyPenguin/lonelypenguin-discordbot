@@ -40,7 +40,7 @@ class Modmail(commands.Cog):
 
         To successfully trigger a command, user must not be blacklisted from the bot, or must be LonelyPenguin or a moderator.
         """
-       #Ignore blacklisted users unless they are mods or LonelyPenguin
+       # Ignore blacklisted users unless they are mods or LonelyPenguin
         return ctx.author.id not in self.bot.blacklisted_users or ctx.author.id == 305704400041803776 or ctx.author.id in self.bot.moderator_ids
 
     def mod_only():
@@ -271,7 +271,6 @@ class Modmail(commands.Cog):
         if not ctx.invoked_subcommand:
             await ctx.send(embed=self.bot.simple_embed('Run `;help modmail` for details.'))
 
-
     @modmail.command(name='open', aliases=['start', 'initiate', 'new'])
     @mod_only()
     @commands.guild_only()
@@ -465,10 +464,10 @@ class Modmail(commands.Cog):
         else:
             # All other errors not returned come here. And we can just print the default Traceback.
             await ctx.send(embed=self.bot.simple_embed(f'Something went wrong: {error}'))
-        print('Ignoring exception in command {}:'.format(
-            ctx.command), file=stderr)
-        print_exception(
-            type(error), error, error.__traceback__, file=stderr)
+            print('Ignoring exception in command {}:'.format(
+                ctx.command), file=stderr)
+            print_exception(
+                type(error), error, error.__traceback__, file=stderr)
 
     @closemodmail.error
     async def closemodmail_error(self, ctx: commands.Context, error):
