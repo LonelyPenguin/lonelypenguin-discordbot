@@ -58,7 +58,7 @@ class Blacklist(commands.Cog):
 
         mod_confirmed_blacklist_embed = discord.Embed(description=f'Blacklisted {user_to_blacklist.mention} from interacting with the modmail system.').set_author(
             name=self.embed_details['author name'], icon_url=self.embed_details['author icon'])
-        user_inform_blacklist_embed = discord.Embed(description='You have been blacklisted from the modmail system– this bot will no longer respond to any of your messages. If you believe this was in error, please DM a moderator directly.').set_author(
+        user_inform_blacklist_embed = discord.Embed(description='You have been blacklisted from the modmail system; this bot will no longer respond to any of your messages. If you believe this was in error, please DM a moderator directly.').set_author(
             name=self.embed_details['author name'], icon_url=self.embed_details['author icon'])
 
         await ctx.send(embed=mod_confirmed_blacklist_embed)
@@ -85,7 +85,7 @@ class Blacklist(commands.Cog):
 
         mod_confirmed_unblacklist_embed = discord.Embed(description=f'Removed {user_to_unblacklist.mention} from the blacklist. They can once again interact with the modmail system.').set_author(
             name=self.embed_details['author name'], icon_url=self. embed_details['author icon'])
-        user_inform_unblacklist_embed = discord.Embed(description='You have been removed from the modmail blacklist– you can once again use the modmail system.').set_author(
+        user_inform_unblacklist_embed = discord.Embed(description='You have been removed from the modmail blacklist; you can once again use the modmail system.').set_author(
             name=self.embed_details['author name'], icon_url=self.embed_details['author icon'])
 
         await ctx.send(embed=mod_confirmed_unblacklist_embed)
