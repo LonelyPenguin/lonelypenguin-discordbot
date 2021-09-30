@@ -43,6 +43,16 @@ async def startup():
         await c.execute('SELECT * FROM blacklist')
         bot.blacklisted_users = [each_row[1] for each_row in await c.fetchall()]
 
+        async def do_db_query(bot: commands.Bot, query: str, args: tuple, fetch: bool = True):
+            async with bot.conn.execute(query, args) as c:
+                if fetch:
+                    c.all = await c.fetchall()
+                    c.one = await c.fetchone()
+                await bot.conn.commit()
+                return c
+
+        bot.do_db_query = do_db_query
+
         with open("config/server_vars.json") as server_vars_file:
             server_vars = json.load(server_vars_file)
         bot.logs_channel_id, bot.server_id, bot.modmail_category_id, bot.moderator_ids = list(server_vars.values())
