@@ -3,7 +3,7 @@ todo:
 1 make docstrings better
 2 make task that checks for duplicate/leftover(?) db entries every x period of time
 1 mods can only open modmail in specific cat/channel?
-0 rename "results" to more useful name depending on context
+0.5 rework blacklist notif phrasing
 
 notes/resources:
 https://realpython.com/documenting-python-code/

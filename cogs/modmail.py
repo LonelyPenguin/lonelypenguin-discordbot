@@ -91,9 +91,9 @@ class Modmail(commands.Cog):
         if not from_user:
             opening_modmail_message = await modmail_user.send(embed=self.bot.simple_embed('Opening a new modmail...'))
 
-        results = await self.bot.do_db_query(self.bot, 'SELECT * FROM activemodmails WHERE userid=?', (modmail_user.id,), "one")
+        modmail_entry = await self.bot.do_db_query(self.bot, 'SELECT * FROM activemodmails WHERE userid=?', (modmail_user.id,), "one")
 
-        if results is not None:  # if a modmail is already attached to this user
+        if modmail_entry:  # if a modmail is already attached to this user
             avoid_duplicate_modmail_embed = self.bot.simple_embed(
                 'Error: you tried to open more than one modmail at once. The bot will handle this– no action is required on your part, and the rest of the modmail flow will continue as normal. However, the following message was probably not relayed, so you may want to send it again:')
 
@@ -190,12 +190,11 @@ class Modmail(commands.Cog):
 
             if message.guild is None:  # if in DM
 
-                results = await self.bot.do_db_query(self.bot, 'SELECT * FROM activemodmails WHERE userid=?', (message.author.id,), "one")
-                my_row = results
+                modmail_entry = await self.bot.do_db_query(self.bot, 'SELECT * FROM activemodmails WHERE userid=?', (message.author.id,), "one")
 
-                if my_row is not None:  # if message part of an active modmail, relay message
+                if modmail_entry is not None:  # if message part of an active modmail, relay message
                     try:
-                        await self.relay_message(message, my_row, True)
+                        await self.relay_message(message, modmail_entry, True)
                     except discord.Forbidden as error:
                         await message.channel.send(embed=self.bot.simple_embed(f'Error: bot lacks permissions to relay your message. Please contact a moderator directly. ({error})'))
 
@@ -245,13 +244,12 @@ class Modmail(commands.Cog):
             # ignore DMs (other listener) and guild messages outside modmail cat (reduce db requests)
             if message.guild is not None and message.channel.category_id == self.bot.modmail_category_id:
 
-                results = await self.bot.do_db_query(self.bot, 'SELECT * FROM activemodmails WHERE modmailchnlid=?', (message.channel.id, ), "one")
-                my_row = results
+                modmail_entry = await self.bot.do_db_query(self.bot, 'SELECT * FROM activemodmails WHERE modmailchnlid=?', (message.channel.id, ), "one")
 
                 # if in active modmail channel
-                if my_row is not None:
+                if modmail_entry:
                     try:
-                        await self.relay_message(message, my_row, False)
+                        await self.relay_message(message, modmail_entry, False)
                     except discord.Forbidden as error:
                         await message.channel.send(embed=self.bot.simple_embed(f"Error: couldn't DM that user. ({error})"))
 
@@ -284,8 +282,8 @@ class Modmail(commands.Cog):
         if something goes wrong, contact LonelyPenguin#9931.
         Maximum length of reason is 72 characters."""
 
-        results = await self.bot.do_db_query(self.bot, 'SELECT * FROM activemodmails WHERE modmailchnlid=?', (ctx.channel.id,), "one")
-        if results is not None:
+        modmail_entry = await self.bot.do_db_query(self.bot, 'SELECT * FROM activemodmails WHERE modmailchnlid=?', (ctx.channel.id,), "one")
+        if modmail_entry:
             await ctx.send(embed=self.bot.simple_embed('Error: you are currently in a modmail. Run this command in a different channel (for privacy).'), delete_after=5.0)
             await ctx.message.delete(delay=4.75)
             return
@@ -313,16 +311,14 @@ class Modmail(commands.Cog):
         No arguments needed."""
 
         if ctx.guild is None:
-            results = await self.bot.do_db_query(self.bot, 'SELECT * FROM activemodmails WHERE userid=?', (ctx.author.id,), "one")
+            modmail_entry = await self.bot.do_db_query(self.bot, 'SELECT * FROM activemodmails WHERE userid=?', (ctx.author.id,), "one")
         else:
-            results = await self.bot.do_db_query(self.bot, 'SELECT * FROM activemodmails WHERE modmailchnlid=?', (ctx.channel.id,), "one")
-
-        my_row = results
+            modmail_entry = await self.bot.do_db_query(self.bot, 'SELECT * FROM activemodmails WHERE modmailchnlid=?', (ctx.channel.id,), "one")
 
         logs_channel = self.bot.get_channel(self.bot.logs_channel_id)
-        modmail_channel = self.bot.get_channel(my_row[1])
-        modmail_user = self.bot.get_user(my_row[0])
-        modmail_reason = my_row[2]
+        modmail_channel = self.bot.get_channel(modmail_entry[1])
+        modmail_user = self.bot.get_user(modmail_entry[0])
+        modmail_reason = modmail_entry[2]
 
         await ctx.send(embed=self.bot.simple_embed('Creating logs and closing modmail...'))
 
@@ -366,7 +362,7 @@ class Modmail(commands.Cog):
         await logs_channel.send(embed=mod_modmail_closed_embed)
         await logs_channel.send(file=dpy_compatible_log)
 
-        await self.bot.do_db_query(self.bot, 'DELETE FROM activemodmails WHERE modmailchnlid=?', (my_row[1],))
+        await self.bot.do_db_query(self.bot, 'DELETE FROM activemodmails WHERE modmailchnlid=?', (modmail_entry[1],))
 
         # send to the user:
         dpy_compatible_log = discord.File(
@@ -393,12 +389,11 @@ class Modmail(commands.Cog):
         if not reason:
 
             if ctx.guild is None:
-                results = await self.bot.do_db_query(self.bot, 'SELECT * FROM activemodmails WHERE userid=?', (ctx.author.id,), "one")
+                modmail_entry = await self.bot.do_db_query(self.bot, 'SELECT * FROM activemodmails WHERE userid=?', (ctx.author.id,), "one")
             else:
-                results = await self.bot.do_db_query(self.bot, 'SELECT * FROM activemodmails WHERE modmailchnlid=?', (ctx.channel.id,), "one")
+                modmail_entry = await self.bot.do_db_query(self.bot, 'SELECT * FROM activemodmails WHERE modmailchnlid=?', (ctx.channel.id,), "one")
 
-            my_row = results
-            reason = my_row[2]
+            reason = modmail_entry[2]
 
             view_reason_embed = discord.Embed(description=f"This modmail's reason is currently `{reason}`.").set_author(
                 name=self.embed_details['author name'], icon_url=self.embed_details['author icon']).set_footer(text='Use ;modmail reason <reason> to change the reason of this modmail.')
@@ -412,15 +407,13 @@ class Modmail(commands.Cog):
             name=self.embed_details['author name'], icon_url=self.embed_details['author icon']).set_footer(text=self.embed_details['footer'])
 
         if ctx.guild is None:
-            results = await self.bot.do_db_query(self.bot, 'SELECT * FROM activemodmails WHERE userid=?', (ctx.author.id,), "one")
+            modmail_entry = await self.bot.do_db_query(self.bot, 'SELECT * FROM activemodmails WHERE userid=?', (ctx.author.id,), "one")
         else:
-            results = await self.bot.do_db_query(self.bot, 'SELECT * FROM activemodmails WHERE modmailchnlid=?', (ctx.channel.id,), "one")
+            modmail_entry = await self.bot.do_db_query(self.bot, 'SELECT * FROM activemodmails WHERE modmailchnlid=?', (ctx.channel.id,), "one")
 
-        my_row = results
-
-        await self.bot.do_db_query(self.bot, 'UPDATE activemodmails SET reason=? WHERE modmailchnlid=? ', (reason, my_row[1]))
-        modmail_channel = self.bot.get_channel(my_row[1])
-        modmail_user = self.bot.get_user(my_row[0])
+        await self.bot.do_db_query(self.bot, 'UPDATE activemodmails SET reason=? WHERE modmailchnlid=? ', (reason, modmail_entry[1]))
+        modmail_channel = self.bot.get_channel(modmail_entry[1])
+        modmail_user = self.bot.get_user(modmail_entry[0])
 
         mod_reason_updated_msg = await modmail_channel.send(embed=update_notice_embed)
         user_reason_updated_msg = await modmail_user.send(embed=update_notice_embed)

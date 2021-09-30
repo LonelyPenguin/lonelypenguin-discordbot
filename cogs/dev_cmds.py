@@ -43,8 +43,7 @@ class DevCommands(commands.Cog):
         Not designed or tested for widespread use. Only responds to LonelyPenguin.
         """
 
-        results = await self.bot.do_db_query(self.bot, 'SELECT * FROM activemodmails', None ,"all")
-        full_activemodmails_table = results
+        full_activemodmails_table = await self.bot.do_db_query(self.bot, 'SELECT * FROM activemodmails', None ,"all")
 
         table_contents = StringIO(
             f'userid, modmailchnlid, reason\n\n{linesep.join([str(my_row) for my_row in full_activemodmails_table])}')
@@ -85,10 +84,9 @@ class DevCommands(commands.Cog):
 
         user_id = int(user_id)
 
-        results = await self.bot.do_db_query(self.bot, 'SELECT * FROM activemodmails WHERE userid=?', (user_id,), "all")
-        my_rows = results
+        rows = await self.bot.do_db_query(self.bot, 'SELECT * FROM activemodmails WHERE userid=?', (user_id,), "all")
         my_str = '```userid, modmailchnlid, reason\n\n'
-        my_str += '\n'.join([str(row) for row in my_rows])
+        my_str += '\n'.join([str(row) for row in rows])
         my_str += '```'
 
         confirm_message = await ctx.send(f'Are you sure you want to delete these entries (tied to <@{user_id}>) from the database? **This will not create logs or notify anyone involved.** It also will not delete the channel. Be certain. \n\n{my_str}')

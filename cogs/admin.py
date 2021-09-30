@@ -36,10 +36,10 @@ class Admin(commands.Cog):
     async def manual_modmail_add(self, ctx: commands.Context, modmail_user: discord.Member, modmail_channel: discord.TextChannel, *, modmail_reason: str = 'no reason specified'):
         """Re-registers a modmail that already exists on the server, but which the bot has forgotten about for whatever reason."""
 
-        results = await self.bot.do_db_query(self.bot, 'SELECT * FROM activemodmails WHERE userid=?', (modmail_user.id,), "one")
-        my_row = results
-        if my_row is not None:
-            await ctx.send(embed=self.bot.simple_embed(f'Error: There is already a known modmail attached to that user: <#{my_row[1]}>.'))
+        modmail_entry = await self.bot.do_db_query(self.bot, 'SELECT * FROM activemodmails WHERE userid=?', (modmail_user.id,), "one")
+
+        if modmail_entry is not None:
+            await ctx.send(embed=self.bot.simple_embed(f'Error: There is already a known modmail attached to that user: <#{modmail_entry[1]}>.'))
             return
 
         await self.bot.do_db_query(self.bot, 'INSERT INTO activemodmails VALUES (?,?,?)', (modmail_user.id, modmail_channel.id, modmail_reason))
