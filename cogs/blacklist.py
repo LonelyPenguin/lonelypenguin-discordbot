@@ -11,9 +11,9 @@ class Blacklist(commands.Cog):
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        self.embed_details = {'author name': 'Servername Modmail',
+        self.embed_details = {'author name': 'KotLC Chats Modmail',
                               'author icon': 'https://cdn.discordapp.com/attachments/743536411369799804/854865953083228181/mail_icon.png',
-                              'footer': 'Use `;modmail close` to close this modmail, and `;modmail reason` to change its reason.'}
+                              'footer': 'Use ;modmail close to close this modmail, and ;modmail reason to change its reason.'}
 
     def cog_check(self, ctx: commands.Context):
  
