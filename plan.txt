@@ -3,7 +3,9 @@ todo:
 1 make docstrings better
 2 make task that checks for duplicate/leftover(?) db entries every x period of time
 1 mods can only open modmail in specific cat/channel?
-0.5 rework blacklist notif phrasing
+2 download attachments for log
+0 "message has been cut" > "message has been trimmed"
+1.5? paginate blacklist etc (if file, pain on mobile)
 
 notes/resources:
 https://realpython.com/documenting-python-code/

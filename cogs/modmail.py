@@ -2,9 +2,11 @@
 import asyncio
 from functools import wraps
 from io import StringIO
+from re import sub
+from sys import stderr
 from textwrap import fill
 from traceback import print_exception
-from sys import stderr
+
 
 import discord
 from discord.ext import commands
@@ -110,7 +112,9 @@ class Modmail(commands.Cog):
         modmail_private_cat = my_guild.get_channel(
             self.bot.modmail_category_id)
         modmail_channel = await modmail_private_cat.create_text_channel(f'{modmail_user.name}{modmail_user.discriminator}')
+        
         new_row = (modmail_user.id, modmail_channel.id, modmailreason)
+        
         await self.bot.do_db_query(self.bot, 'INSERT INTO activemodmails VALUES (?,?,?)', new_row)
 
         if from_user:
@@ -119,8 +123,6 @@ class Modmail(commands.Cog):
 
             user_modmail_opened_embed = discord.Embed(description=f"Opened a new modmail and sent your message.\n\nAll messages sent will be relayed back and forth between you and the moderators. A ✅ on your message means it's been successfully relayed, and a ✂️ means it has been cut to stay within the character limit.").set_author(
                 name=self.embed_details['author name'], icon_url=self.embed_details['author icon']).set_footer(text=self.embed_details['footer'])
-
-            relay_first_message_to = modmail_channel
 
         else:
             # single quotes used despite apostrophes due to double quotes elsewhere in string
@@ -131,16 +133,10 @@ class Modmail(commands.Cog):
             user_modmail_opened_embed = discord.Embed(description=f"A moderator on KotLC Chats opened a new modmail to speak with you (see their message below). Send a message in this DM to respond. The reason for this modmail is `{modmailreason}`. \n\nAll messages sent will be relayed back and forth between you and the moderators. A ✅ on your message means it's been successfully relayed, and a ✂️ means it has been cut to stay within the character limit.").set_author(
                 name=self.embed_details['author name'], icon_url=self.embed_details['author icon']).set_footer(text=self.embed_details['footer'])
 
-            relay_first_message_to = modmail_user
+        await modmail_user.send(embed=user_modmail_opened_embed)
+        await modmail_channel.send(embed=mod_modmail_opened_embed)
 
-        initial_user_msg = await modmail_user.send(embed=user_modmail_opened_embed)
-        initial_mod_msg = await modmail_channel.send(embed=mod_modmail_opened_embed)
-
-        if messagectx.attachments != []:
-            discordable_files = [(await x.to_file()) for x in messagectx.attachments]
-            await relay_first_message_to.send(f'**{messagectx.author.name}**: {message_content}', files=discordable_files)
-        else:
-            await relay_first_message_to.send(f'**{messagectx.author.name}**: {message_content}')
+        await self.relay_message(messagectx, new_row, from_user)
 
     async def relay_message(self, messagectx: discord.Message, row: tuple, from_user: bool):
         """Relays a message from a DMing user to moderators, or vice-versa.
@@ -160,13 +156,39 @@ class Modmail(commands.Cog):
             destination = self.bot.get_user(row[0])
 
         try:
-            if messagectx.attachments != []:
+            kwargs = {}
+            
+            if messagectx.attachments:
                 discordable_files = [(await x.to_file()) for x in messagectx.attachments]
-                await destination.send(f'**{messagectx.author.name}**: {message_content}', files=discordable_files)
-            else:
-                await destination.send(f'**{messagectx.author.name}**: {message_content}')
+                kwargs['files'] = discordable_files
+
+            if messagectx.reference and messagectx.reference.resolved:
+                reply = messagectx.reference.resolved
+
+                if reply.author.id == self.bot.user.id:
+                    reply.content = sub('\*\*.*?\*\*: ', '', reply.content, count=1)
+
+                link_message = reply
+                async for msg in destination.history():
+                    if msg.author.id == self.bot.user.id:
+                        msg.content = sub('\*\*.*?\*\*: ', '', msg.content, count=1)
+                    if msg.content == reply.content:
+                        link_message = msg
+                        reply_to_str = f'[**Reply to:**]({msg.jump_url} "Jump to message")'
+                        break
+                    else: 
+                        reply_to_str = f'**Reply to:**'
+
+                quote_end = ' ...' if len(link_message.content) > 100 else ''
+
+                embed = discord.Embed(description=f'{reply_to_str} {link_message.content[:100]}{quote_end}')
+                embed.set_author(name=link_message.author.name)
+                kwargs['embeds'] = [embed]
+
+            await destination.send(f'**{messagectx.author.name}**: {message_content}', **kwargs)
 
             await messagectx.add_reaction('✅')
+
         except discord.Forbidden as error:
             await messagectx.channel.send(embed=self.bot.simple_embed(f"Error: Couldn't send a message to this user; they have probably blocked the bot. Try DMing them directly. (Alternatively, bot can't add a reaction to your message.) ({error})"))
         except AttributeError as error:
@@ -326,8 +348,9 @@ class Modmail(commands.Cog):
 
         async for message in modmail_channel.history(limit=None, oldest_first=True):
 
-            if message.is_system():
-                continue
+            reply_if_any = ''
+            if message.reference and message.reference.resolved:
+                reply_if_any = f'Reply to: {message.reference.resolved.id}'
 
             embeds_if_any = ''
             if message.embeds:
@@ -343,10 +366,10 @@ class Modmail(commands.Cog):
                 attachments_if_any = '\nAttachment URL(s):\n{}\n'.format(
                     ',\n'.join(attachment_url_list))
 
-            contentstr = f'Content:\n{fill(message.content)}\n' if message.content else '[no message content]\n'
+            contentstr = f'Content:\n{fill(message.system_content)}\n' if message.system_content else '[no message content]\n'
 
             modmail_log.write(
-                f'{message.author.name}#{message.author.discriminator} ({message.author.id}) at {str(message.created_at)[:19]} UTC\n\n{contentstr}{embeds_if_any}{attachments_if_any}\n\n')
+                f'{message.author.name}#{message.author.discriminator} ({message.author.id}) at {str(message.created_at)[:19]} UTC\n{reply_if_any}\n{contentstr}{embeds_if_any}{attachments_if_any}\n{message.id}\n\n')
 
         modmail_log.seek(0)
         log_filename = f'log-{modmail_user.name}-{modmail_reason}-{str(ctx.message.created_at)[:10]}.txt'
