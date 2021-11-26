@@ -45,15 +45,14 @@ class DevCommands(commands.Cog):
 
         full_activemodmails_table = await self.bot.do_db_query(self.bot, 'SELECT * FROM activemodmails', None ,"all")
 
-        table_contents = StringIO(
-            f'userid, modmailchnlid, reason\n\n{linesep.join([str(my_row) for my_row in full_activemodmails_table])}')
+        paginator = commands.Paginator(prefix='```\nuserid, modmailchnlid, reason\n')
 
-        table_filename = f'{ctx.message.created_at}-activemodmails.txt'
+        for my_row in full_activemodmails_table:
+            paginator.add_line(str(my_row))
 
-        dpy_table_file = discord.File(fp=table_contents, filename=table_filename)
-        table_contents.close()
-
-        await ctx.send(content=f'Current contents of activemodmails table:', file=dpy_table_file)
+        await ctx.send('Current contents of activemodmails:')
+        for page in paginator.pages:
+            await ctx.send(page)
 
     @commands.command(aliases=['reload', 'reloadcog'])
     async def reloadext(self, ctx: commands.Context, cog_to_reload: str):
